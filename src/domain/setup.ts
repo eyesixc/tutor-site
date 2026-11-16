@@ -9,7 +9,7 @@ import {
 } from '../core/crypto'
 import { diskInfo } from '../core/disk'
 import { createStore, isLocalRepo, jsonFile } from '../core/storage'
-import { checkRepoAccess } from '../core/storage/github'
+import { canWriteToRepo, checkRepoAccess } from '../core/storage/github'
 import { paths, type AdminSettings, type KeysFile, type StudentsIndex } from './types'
 import { ValidationError } from './students'
 
@@ -71,19 +71,24 @@ export async function runSetup(raw: SetupInput, onStep: (text: string) => void):
     onStep('Проверяю доступ к репозиториям')
     const data = await checkRepoAccess(input.dataRepo, input.adminToken)
     if (!data.isPrivate) throw new ValidationError('dataRepo', 'Репозиторий данных должен быть приватным')
-    if (!data.canWrite) throw new ValidationError('adminToken', 'У токена репетитора нет права записи в репозиторий данных')
-    const site = await checkRepoAccess(input.siteRepo, input.adminToken)
-    if (!site.canWrite) throw new ValidationError('adminToken', 'У токена репетитора нет права записи в репозиторий сайта')
-    const student = await checkRepoAccess(input.dataRepo, input.studentToken)
-    if (!student.canWrite) throw new ValidationError('studentToken', 'У токена учеников нет права записи в репозиторий данных')
-    let studentSeesSite = true
-    try {
-      studentSeesSite = (await checkRepoAccess(input.siteRepo, input.studentToken)).canWrite
-    } catch {
-      studentSeesSite = false
+    await checkRepoAccess(input.siteRepo, input.adminToken)
+
+    onStep('Проверяю права токенов')
+    const hint = ' Откройте токен на GitHub, нажмите Edit и поставьте Contents: Read and write.'
+    if (!(await canWriteToRepo(input.dataRepo, input.adminToken))) {
+      throw new ValidationError('adminToken', 'Токен репетитора не может писать в репозиторий данных.' + hint)
     }
-    if (studentSeesSite) {
-      throw new ValidationError('studentToken', 'Токен учеников не должен иметь права записи в репозиторий сайта')
+    if (!(await canWriteToRepo(input.siteRepo, input.adminToken))) {
+      throw new ValidationError('adminToken', 'Токен репетитора не может писать в репозиторий сайта.' + hint)
+    }
+    if (!(await canWriteToRepo(input.dataRepo, input.studentToken))) {
+      throw new ValidationError('studentToken', 'Токен учеников не может писать в репозиторий данных.' + hint)
+    }
+    if (await canWriteToRepo(input.siteRepo, input.studentToken)) {
+      throw new ValidationError(
+        'studentToken',
+        'Токен учеников может писать в репозиторий сайта. Оставьте ему доступ только к репозиторию данных.',
+      )
     }
     if (input.diskToken) {
       onStep('Проверяю Яндекс Диск')
