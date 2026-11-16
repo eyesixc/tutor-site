@@ -2,6 +2,7 @@ import * as Menu from '@radix-ui/react-dropdown-menu'
 import { ArrowSquareOut, DotsThree, Key, PencilSimple, Plus, Trash } from '@phosphor-icons/react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent } from 'react'
+import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useSession } from '../../core/auth/session'
 import { TUTOR_TIMEZONE, zoneLabel, zoneOptions } from '../../core/time'
@@ -297,7 +298,9 @@ export function StudentsPage() {
                 className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 border-b border-line px-4 py-3 last:border-b-0 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto] sm:px-5"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-medium">{student.name}</p>
+                  <Link to={`/admin/students/${student.id}`} className="block truncate font-medium hover:underline">
+                    {student.name}
+                  </Link>
                   <p className="num truncate text-sm text-muted">{student.login}</p>
                 </div>
                 <p className="col-start-1 truncate text-sm text-muted sm:col-start-auto">{zoneLabel(student.timezone)}</p>

@@ -27,6 +27,29 @@ export interface AdminSettings {
   maxUploadMb: number
 }
 
+export interface LessonLink {
+  title: string
+  url: string
+}
+
+/** Урок из общей библиотеки. Создаётся один раз и назначается разным ученикам. */
+export interface Lesson {
+  id: string
+  title: string
+  topic: string
+  description: string
+  egeTask: number | null
+  links: LessonLink[]
+  fileIds: string[]
+  createdAt: string
+  updatedAt: string
+}
+
+/** shared/lessons.json */
+export interface LessonsFile {
+  lessons: Lesson[]
+}
+
 export interface StudentProfile {
   name: string
   timezone: string

@@ -1,4 +1,10 @@
-import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from 'react'
+import {
+  useId,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+  type TextareaHTMLAttributes,
+} from 'react'
 import { cn } from './cn'
 
 const controlClass =
@@ -63,7 +69,33 @@ export function TextField({ label, hint, error, value, onChange, mono, className
   )
 }
 
-type SelectFieldProps = WrapperProps &
+type TextAreaFieldProps = WrapperProps &
+  Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, 'onChange' | 'value'> & {
+    value: string
+    onChange(value: string): void
+  }
+
+export function TextAreaField({ label, hint, error, value, onChange, className, rows = 4, ...rest }: TextAreaFieldProps) {
+  const id = useId()
+  return (
+    <FieldShell id={id} label={label} hint={hint} error={error}>
+      <textarea
+        id={id}
+        rows={rows}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-invalid={error ? true : undefined}
+        className={cn(controlClass, 'h-auto min-h-24 resize-y py-2.5 leading-normal', className)}
+        {...rest}
+      />
+    </FieldShell>
+  )
+}
+
+/** Класс для полей ввода вне FieldShell (плотные строки с датой и временем). */
+export const inputClass = controlClass
+
+type SelectFieldProps =WrapperProps &
   Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value'> & {
     value: string
     onChange(value: string): void

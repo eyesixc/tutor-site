@@ -1,0 +1,184 @@
+import { CaretLeft, CaretRight } from '@phosphor-icons/react'
+import { useMemo, useState } from 'react'
+import { Link } from 'react-router-dom'
+import {
+  dayKey,
+  formatDayKey,
+  formatTime,
+  monthGrid,
+  monthKey,
+  monthTitle,
+  shiftMonth,
+  todayKey,
+  WEEKDAYS_SHORT,
+  yearMonthOf,
+  type YearMonth,
+} from '../core/time'
+import { Button, IconButton } from './Button'
+import { cn } from './cn'
+
+export interface CalendarEvent {
+  id: string
+  startsAt: string
+  endsAt: string
+  title: string
+  /** Вторая строка: имя ученика в календаре репетитора. */
+  caption?: string
+  to: string
+  cancelled?: boolean
+}
+
+interface MonthCalendarProps {
+  events: CalendarEvent[]
+  timeZone: string
+}
+
+const MAX_IN_CELL = 3
+
+function chipClass(event: CalendarEvent, isPast: boolean): string {
+  if (event.cancelled) return 'bg-sunken text-muted line-through'
+  return isPast ? 'bg-sunken text-muted' : 'bg-pen-soft text-pen'
+}
+
+export function MonthCalendar({ events, timeZone }: MonthCalendarProps) {
+  const today = todayKey(timeZone)
+  const [month, setMonth] = useState<YearMonth>(() => yearMonthOf(today))
+  const [selected, setSelected] = useState(today)
+  const nowIso = new Date().toISOString()
+
+  const byDay = useMemo(() => {
+    const map = new Map<string, CalendarEvent[]>()
+    for (const event of [...events].sort((a, b) => a.startsAt.localeCompare(b.startsAt))) {
+      const key = dayKey(event.startsAt, timeZone)
+      map.set(key, [...(map.get(key) ?? []), event])
+    }
+    return map
+  }, [events, timeZone])
+
+  const days = monthGrid(month)
+  const current = monthKey(month)
+  const selectedEvents = byDay.get(selected) ?? []
+
+  const goToday = () => {
+    setMonth(yearMonthOf(today))
+    setSelected(today)
+  }
+
+  return (
+    <section className="overflow-hidden rounded-panel border border-line bg-surface">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+        <h2 className="text-lg" aria-live="polite">
+          {monthTitle(month)}
+        </h2>
+        <div className="flex items-center gap-1">
+          <IconButton label="Предыдущий месяц" onClick={() => setMonth((m) => shiftMonth(m, -1))}>
+            <CaretLeft size={20} />
+          </IconButton>
+          <Button size="sm" onClick={goToday}>
+            Сегодня
+          </Button>
+          <IconButton label="Следующий месяц" onClick={() => setMonth((m) => shiftMonth(m, 1))}>
+            <CaretRight size={20} />
+          </IconButton>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-7 border-t border-line text-xs text-muted" aria-hidden>
+        {WEEKDAYS_SHORT.map((w, i) => (
+          <div key={w} className={cn('px-1 py-1.5 text-center sm:px-2.5 sm:text-left', i < 6 && 'border-r border-line')}>
+            {w}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 border-t border-line">
+        {days.map((key, i) => {
+          const inMonth = key.startsWith(current)
+          const list = byDay.get(key) ?? []
+          const isToday = key === today
+          const isSelected = key === selected
+          const dayNumber = Number(key.slice(8))
+          return (
+            <div
+              key={key}
+              className={cn(
+                'flex min-h-14 flex-col gap-1 border-b border-line p-1 sm:min-h-26 sm:p-1.5',
+                i % 7 < 6 && 'border-r',
+                i >= 35 && 'border-b-0',
+                !inMonth && 'bg-bg',
+                isSelected && 'bg-pen-soft/50',
+              )}
+            >
+              <button
+                type="button"
+                onClick={() => setSelected(key)}
+                aria-pressed={isSelected}
+                aria-label={`${formatDayKey(key, true)}${list.length ? `, занятий: ${list.length}` : ''}`}
+                className={cn(
+                  'num flex size-9 items-center justify-center self-center rounded-full text-sm sm:size-7 sm:self-start',
+                  isToday ? 'bg-pen font-medium text-pen-ink' : inMonth ? 'text-ink hover:bg-sunken' : 'text-muted hover:bg-sunken',
+                )}
+              >
+                {dayNumber}
+              </button>
+
+              {list.length > 0 && (
+                <span className="flex justify-center gap-0.5 sm:hidden" aria-hidden>
+                  {list.slice(0, 3).map((e) => (
+                    <span key={e.id} className={cn('size-1.5 rounded-full', e.cancelled ? 'bg-muted/50' : 'bg-pen')} />
+                  ))}
+                </span>
+              )}
+
+              <div className="hidden flex-col gap-1 sm:flex">
+                {list.slice(0, MAX_IN_CELL).map((e) => (
+                  <Link
+                    key={e.id}
+                    to={e.to}
+                    className={cn('rounded-[6px] px-1.5 py-1 text-xs leading-tight', chipClass(e, e.endsAt < nowIso))}
+                  >
+                    <span className="num block">{formatTime(e.startsAt, timeZone)}</span>
+                    {e.caption && <span className="block truncate font-medium">{e.caption}</span>}
+                    <span className="block truncate">{e.title}</span>
+                  </Link>
+                ))}
+                {list.length > MAX_IN_CELL && (
+                  <button type="button" onClick={() => setSelected(key)} className="px-1.5 text-left text-xs text-muted underline">
+                    ещё {list.length - MAX_IN_CELL}
+                  </button>
+                )}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="border-t border-line px-4 py-3 sm:px-5">
+        <h3 className="text-sm font-medium first-letter:uppercase">{formatDayKey(selected, true)}</h3>
+        {selectedEvents.length === 0 ? (
+          <p className="mt-1 text-sm text-muted">Занятий нет</p>
+        ) : (
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {selectedEvents.map((e) => (
+              <li key={e.id}>
+                <Link
+                  to={e.to}
+                  className="flex min-h-11 items-center gap-3 rounded-control px-2 py-1.5 hover:bg-sunken"
+                >
+                  <span className="num w-24 shrink-0 text-sm text-muted">
+                    {formatTime(e.startsAt, timeZone)}–{formatTime(e.endsAt, timeZone)}
+                  </span>
+                  <span className={cn('min-w-0 flex-1', e.cancelled && 'text-muted line-through')}>
+                    {e.caption && <span className="font-medium">{e.caption}: </span>}
+                    {e.title}
+                  </span>
+                  {e.cancelled && <span className="text-sm text-muted">Отменено</span>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </section>
+  )
+}
