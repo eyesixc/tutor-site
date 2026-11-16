@@ -11,7 +11,7 @@ import { ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/
 import { cn } from '../../ui/cn'
 import { useLessons } from '../shared/data'
 import { FileList, Uploader } from '../shared/filesUi'
-import { Facts, scoreText, StatusBadge } from '../shared/homeworkUi'
+import { Facts, Linkified, scoreText, StatusBadge } from '../shared/homeworkUi'
 import { useOwnData, useOwnHomework, useOwnSubmissions } from './data'
 
 export function StudentHomeworkCardPage() {
@@ -103,7 +103,9 @@ export function StudentHomeworkCardPage() {
           <Panel className="p-5">
             <h2 className="text-lg">Что нужно сделать</h2>
             {hw.instructions ? (
-              <p className="mt-2 max-w-[65ch] whitespace-pre-line">{hw.instructions}</p>
+              <div className="mt-2">
+                <Linkified text={hw.instructions} />
+              </div>
             ) : (
               <p className="mt-2 text-muted">Репетитор не оставил инструкцию. Спроси на уроке, если что-то неясно.</p>
             )}

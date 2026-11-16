@@ -200,3 +200,21 @@ export function Facts({ items }: { items: [string, ReactNode][] }) {
     </dl>
   )
 }
+
+/** Текст с переносами строк, в котором адреса становятся ссылками. */
+export function Linkified({ text }: { text: string }) {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g)
+  return (
+    <p className="max-w-[65ch] break-words whitespace-pre-line">
+      {parts.map((part, i) =>
+        /^https?:\/\//.test(part) ? (
+          <a key={i} href={part} target="_blank" rel="noreferrer" className="text-pen underline">
+            {part}
+          </a>
+        ) : (
+          part
+        ),
+      )}
+    </p>
+  )
+}

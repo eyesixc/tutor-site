@@ -1,4 +1,4 @@
-import { Plus } from '@phosphor-icons/react'
+import { Plus, UploadSimple } from '@phosphor-icons/react'
 import { useMemo, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -22,6 +22,7 @@ import { EmptyState, ErrorState, errorMessage, PageHeader, Panel, Skeleton } fro
 import { cn } from '../../ui/cn'
 import { useLessons, useOverview, useRefresh } from '../shared/data'
 import { scoreText, StatusBadge } from '../shared/homeworkUi'
+import { HomeworkImportDialog } from './HomeworkImportDialog'
 import { blankHomeworkForm, deadlineToUtc, formToInput, HomeworkFields, type HomeworkFormState } from './HomeworkForm'
 
 interface Target {
@@ -207,6 +208,7 @@ export function AdminHomeworkPage() {
   const overview = useOverview()
   const lessons = useLessons()
   const [creating, setCreating] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [student, setStudent] = useState('')
   const [status, setStatus] = useState<StatusFilter>('all')
 
@@ -253,9 +255,14 @@ export function AdminHomeworkPage() {
         }
         action={
           students.length > 0 && (
-            <Button variant="primary" icon={<Plus size={18} weight="bold" />} onClick={() => setCreating(true)}>
-              Выдать задание
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button icon={<UploadSimple size={18} />} onClick={() => setImporting(true)}>
+                Импорт из CSV
+              </Button>
+              <Button variant="primary" icon={<Plus size={18} weight="bold" />} onClick={() => setCreating(true)}>
+                Выдать задание
+              </Button>
+            </div>
           )
         }
       />
@@ -326,6 +333,9 @@ export function AdminHomeworkPage() {
       )}
 
       {creating && <HomeworkCreateDialog students={students} lessons={lessons.data} onClose={() => setCreating(false)} />}
+      {importing && (
+        <HomeworkImportDialog students={students} presetStudentId={student || undefined} onClose={() => setImporting(false)} />
+      )}
     </>
   )
 }

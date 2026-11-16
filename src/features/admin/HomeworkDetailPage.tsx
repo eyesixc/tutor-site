@@ -29,7 +29,7 @@ import { ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/
 import { cn } from '../../ui/cn'
 import { useLessons, useOverview, useRefresh } from '../shared/data'
 import { FileList, Uploader } from '../shared/filesUi'
-import { Facts, scoreText, StatusBadge } from '../shared/homeworkUi'
+import { Facts, Linkified, scoreText, StatusBadge } from '../shared/homeworkUi'
 import {
   deadlineParts,
   deadlineToUtc,
@@ -285,7 +285,9 @@ export function AdminHomeworkDetailPage() {
           <Panel className="p-5">
             <h2 className="text-lg">Инструкция</h2>
             {hw.instructions ? (
-              <p className="mt-2 max-w-[65ch] whitespace-pre-line">{hw.instructions}</p>
+              <div className="mt-2">
+                <Linkified text={hw.instructions} />
+              </div>
             ) : (
               <p className="mt-2 text-muted">Инструкция не заполнена.</p>
             )}
