@@ -1,7 +1,8 @@
-import { ArrowSquareOut, CaretLeft, Plus } from '@phosphor-icons/react'
+import { ArrowSquareOut, CaretLeft, DownloadSimple, Plus } from '@phosphor-icons/react'
 import { useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { TUTOR_TIMEZONE, zoneLabel } from '../../core/time'
+import { exportHomeworkCsv, exportMocksCsv, exportStudentJson, saveTextFile } from '../../domain/export'
 import { sortHomework, viewHomework } from '../../domain/homework'
 import { lessonTitle, sortByStart } from '../../domain/lessons'
 import { Button, buttonClass } from '../../ui/Button'
@@ -156,6 +157,48 @@ export function StudentPage() {
         </Panel>
 
         <MocksStatsPanel stats={mocksStats(mocks)} />
+
+        <Panel className="flex flex-wrap items-center justify-between gap-3 p-4 sm:p-5">
+          <div>
+            <h2 className="text-lg">Выгрузка данных</h2>
+            <p className="mt-1 text-sm text-muted">Расписание, домашние задания и пробники. Пароли и ключи в файл не попадают.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              icon={<DownloadSimple size={16} />}
+              onClick={() =>
+                saveTextFile(
+                  `${student.login}.json`,
+                  exportStudentJson(student, overview.data.files[studentId], overview.data.subs[studentId], lessons.data),
+                  'application/json',
+                )
+              }
+            >
+              Всё в JSON
+            </Button>
+            <Button
+              size="sm"
+              icon={<DownloadSimple size={16} />}
+              onClick={() =>
+                saveTextFile(
+                  `${student.login}-домашние-задания.csv`,
+                  exportHomeworkCsv(overview.data.files[studentId], overview.data.subs[studentId], lessons.data),
+                  'text/csv',
+                )
+              }
+            >
+              Домашки в CSV
+            </Button>
+            <Button
+              size="sm"
+              icon={<DownloadSimple size={16} />}
+              onClick={() => saveTextFile(`${student.login}-пробники.csv`, exportMocksCsv(overview.data.files[studentId]), 'text/csv')}
+            >
+              Пробники в CSV
+            </Button>
+          </div>
+        </Panel>
 
         {past.length > 0 && (
           <Panel className="overflow-hidden">

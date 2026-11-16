@@ -51,6 +51,59 @@ export const CATALOGS: CatalogVersion[] = [
   },
 ]
 
+interface CatalogFile {
+  versions: CatalogVersion[]
+}
+
+const catalogFile = (session: Session) => jsonFile<CatalogFile>(session.data, paths.shared.examCatalog)
+
+/** Версии справочника: сохранённые репетитором, а пока их нет — встроенная. */
+export async function listCatalogs(session: Session): Promise<CatalogVersion[]> {
+  const stored = (await catalogFile(session).load())?.value.versions ?? []
+  return stored.length > 0 ? stored : CATALOGS
+}
+
+export function validateCatalog(version: CatalogVersion): CatalogVersion {
+  const title = version.title.trim()
+  if (title.length < 2) throw new ValidationError('title', 'Введите название версии')
+  if (version.tasks.length === 0) throw new ValidationError('tasks', 'В справочнике должно быть хотя бы одно задание')
+  const tasks = version.tasks.map((task, i) => {
+    const topic = task.topic.trim()
+    if (!topic) throw new ValidationError('tasks', `Задание ${i + 1}: укажите тему`)
+    if (!Number.isInteger(task.maxScore) || task.maxScore < 1 || task.maxScore > 4) {
+      throw new ValidationError('tasks', `Задание ${i + 1}: максимальный балл от 1 до 4`)
+    }
+    return { number: i + 1, topic, maxScore: task.maxScore }
+  })
+  return { id: version.id, title, tasks }
+}
+
+export async function saveCatalog(session: Session, raw: CatalogVersion): Promise<void> {
+  if (session.bundle.role !== 'admin') throw new Error('Действие доступно только репетитору')
+  const version = validateCatalog(raw)
+  await catalogFile(session).update((cur) => {
+    // При первом сохранении встроенная версия переносится в репозиторий.
+    const versions = cur?.versions.length ? cur.versions : CATALOGS
+    if (versions.some((v) => v.id !== version.id && v.title === version.title)) {
+      throw new ValidationError('title', 'Версия с таким названием уже есть')
+    }
+    return {
+      versions: versions.some((v) => v.id === version.id)
+        ? versions.map((v) => (v.id === version.id ? version : v))
+        : [...versions, version],
+    }
+  }, 'Сохранён справочник заданий')
+}
+
+export async function deleteCatalog(session: Session, id: string): Promise<void> {
+  if (session.bundle.role !== 'admin') throw new Error('Действие доступно только репетитору')
+  await catalogFile(session).update((cur) => {
+    const versions = cur?.versions.length ? cur.versions : CATALOGS
+    if (versions.length <= 1) throw new Error('Нельзя удалить единственную версию справочника')
+    return { versions: versions.filter((v) => v.id !== id) }
+  }, 'Удалена версия справочника')
+}
+
 // ── Подсчёты ────────────────────────────────────────────────────────────────
 
 export type TaskKind = 'full' | 'partial' | 'zero' | 'unscored'
@@ -209,7 +262,7 @@ export async function createMock(
   catalogId: string,
 ): Promise<MockExam> {
   const input = validateMockInput(raw)
-  const catalog = CATALOGS.find((c) => c.id === catalogId)
+  const catalog = (await listCatalogs(session)).find((c) => c.id === catalogId)
   if (!catalog) throw new ValidationError('catalog', 'Выберите год экзамена')
   const mock: MockExam = {
     id: newId(),

@@ -52,7 +52,7 @@ function Loading() {
 }
 
 /** Файлы в форме материала: уже прикреплённые и только что загруженные. */
-function FormFiles({ files, onAdd, onRemove }: { files: FileMeta[]; onAdd(m: FileMeta[]): void; onRemove(m: FileMeta): void }) {
+export function FormFiles({ files, onAdd, onRemove }: { files: FileMeta[]; onAdd(m: FileMeta[]): void; onRemove(m: FileMeta): void }) {
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-1.5 text-sm font-medium">Файлы</legend>
@@ -66,6 +66,7 @@ function FormFiles({ files, onAdd, onRemove }: { files: FileMeta[]; onAdd(m: Fil
       ))}
       <Uploader
         scope={{ kind: 'shared' }}
+        hint="Перетащите файлы или выберите: PDF, DOCX, HTML, картинки, видео. До 500 МБ каждый"
         onUploaded={async (metas) => {
           onAdd(metas)
         }}

@@ -4,15 +4,19 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useSession } from '../../core/auth/session'
-import { EGE_TASK_COUNT, saveLesson, type LessonInput } from '../../domain/lessons'
+import { pickFiles, removeStored } from '../../domain/files'
+import { addLessonFiles, EGE_TASK_COUNT, removeLessonFile, saveLesson, type LessonInput } from '../../domain/lessons'
 import { ValidationError } from '../../domain/students'
-import type { Lesson } from '../../domain/types'
+import type { FileMeta, Lesson } from '../../domain/types'
 import { Button, IconButton } from '../../ui/Button'
 import { Dialog, DialogActions } from '../../ui/Dialog'
 import { inputBase, inputClass, SelectField, TextAreaField, TextField } from '../../ui/Field'
 import { EmptyState, ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
 import { useLessons, useOverview, useRefresh } from '../shared/data'
+import { useSharedFiles } from '../shared/filesUi'
+import { FormFiles } from '../shared/MaterialsPages'
+import { useQueryClient } from '@tanstack/react-query'
 
 export function LessonFormDialog({
   lesson,
@@ -34,10 +38,27 @@ export function LessonFormDialog({
   }))
   const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null)
   const err = (field: string) => (fieldError?.field === field ? fieldError.message : null)
+  const queryClient = useQueryClient()
+  const shared = useSharedFiles()
+  // Файлы применяются при сохранении: до этого новые лежат в хранилище без привязки.
+  const [added, setAdded] = useState<FileMeta[]>([])
+  const [removed, setRemoved] = useState<FileMeta[]>([])
+  const existing = pickFiles(shared.data, lesson?.fileIds ?? []).filter((f) => !removed.some((r) => r.id === f.id))
+
+  const discard = () => {
+    for (const meta of added) void removeStored(session, meta).catch(() => undefined)
+    onClose()
+  }
 
   const save = useMutation({
-    mutationFn: () => saveLesson(session, form, lesson?.id),
+    mutationFn: async () => {
+      const saved = await saveLesson(session, form, lesson?.id)
+      if (added.length > 0) await addLessonFiles(session, saved.id, added)
+      for (const meta of removed) await removeLessonFile(session, saved.id, meta)
+      return saved
+    },
     onSuccess: async (saved) => {
+      await queryClient.invalidateQueries({ queryKey: ['shared-files'] })
       await refresh()
       toast.success(lesson ? 'Урок сохранён' : 'Урок создан')
       onClose()
@@ -62,7 +83,7 @@ export function LessonFormDialog({
   return (
     <Dialog
       open
-      onOpenChange={(open) => !open && !save.isPending && onClose()}
+      onOpenChange={(open) => !open && !save.isPending && discard()}
       title={lesson ? 'Изменить урок' : 'Новый урок'}
       description={
         lesson
@@ -106,6 +127,19 @@ export function LessonFormDialog({
           value={form.description}
           onChange={(description) => setForm((f) => ({ ...f, description }))}
           hint="Что разбираем на уроке"
+        />
+
+        <FormFiles
+          files={[...existing, ...added]}
+          onAdd={(metas) => setAdded((a) => [...a, ...metas])}
+          onRemove={(meta) => {
+            if (added.some((a) => a.id === meta.id)) {
+              setAdded((a) => a.filter((x) => x.id !== meta.id))
+              void removeStored(session, meta).catch(() => undefined)
+            } else {
+              setRemoved((r) => [...r, meta])
+            }
+          }}
         />
 
         <fieldset className="flex flex-col gap-2">
@@ -152,7 +186,7 @@ export function LessonFormDialog({
         </fieldset>
 
         <DialogActions>
-          <Button onClick={onClose} disabled={save.isPending}>
+          <Button onClick={discard} disabled={save.isPending}>
             Отмена
           </Button>
           <Button type="submit" variant="primary" loading={save.isPending}>

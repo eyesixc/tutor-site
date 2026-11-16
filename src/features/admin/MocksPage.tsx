@@ -4,16 +4,17 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useSession } from '../../core/auth/session'
 import { formatDayKey, todayKey, TUTOR_TIMEZONE } from '../../core/time'
-import { CATALOGS, createMock, deleteMock, mockTotals, saveMock } from '../../domain/mocks'
+import { createMock, deleteMock, mockTotals, saveMock } from '../../domain/mocks'
 import { ValidationError } from '../../domain/students'
 import type { MockExam, MockExamTask, StudentRecord } from '../../domain/types'
-import { Button } from '../../ui/Button'
+import { Button, buttonClass } from '../../ui/Button'
 import { ConfirmDialog, Dialog, DialogActions } from '../../ui/Dialog'
 import { inputBase, SelectField, TextAreaField, TextField } from '../../ui/Field'
 import { EmptyState, ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
 import { useOverview, useRefresh } from '../shared/data'
 import { MockScore, TaskStrip } from '../shared/mocksUi'
+import { useCatalogs } from './CatalogPage'
 
 export function MockCreateDialog({
   students,
@@ -30,7 +31,9 @@ export function MockCreateDialog({
   const [studentId, setStudentId] = useState(presetStudentId ?? students[0]?.id ?? '')
   const [title, setTitle] = useState('')
   const [date, setDate] = useState(todayKey(TUTOR_TIMEZONE))
-  const [catalog, setCatalog] = useState(CATALOGS[0].id)
+  const catalogs = useCatalogs()
+  const [catalogChoice, setCatalog] = useState('')
+  const catalog = catalogChoice || catalogs.data?.[0]?.id || ''
   const [comment, setComment] = useState('')
   const [busy, setBusy] = useState(false)
   const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null)
@@ -75,7 +78,7 @@ export function MockCreateDialog({
         <div className="grid gap-4 sm:grid-cols-2">
           <TextField label="Дата" type="date" value={date} onChange={setDate} error={err('date')} mono />
           <SelectField label="Год экзамена" value={catalog} onChange={setCatalog} error={err('catalog')}>
-            {CATALOGS.map((c) => (
+            {(catalogs.data ?? []).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.title}
               </option>
@@ -150,7 +153,14 @@ export function AdminMocksPage() {
       <PageHeader
         title="Пробники"
         description="Пробник создаётся для одного ученика. Баллы по заданиям выставляются вручную."
-        action={students.length > 0 && rows.length > 0 && createButton}
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Link to="/admin/catalog" className={buttonClass('secondary')}>
+              Справочник заданий
+            </Link>
+            {students.length > 0 && rows.length > 0 && createButton}
+          </div>
+        }
       />
       {students.length === 0 ? (
         <Panel>

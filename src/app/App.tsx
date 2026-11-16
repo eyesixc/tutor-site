@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { SessionProvider, useAuth } from '../core/auth/session'
 import { AdminHomePage } from '../features/admin/AdminHomePage'
+import { CatalogPage } from '../features/admin/CatalogPage'
 import { AdminHomeworkDetailPage } from '../features/admin/HomeworkDetailPage'
 import { AdminHomeworkPage } from '../features/admin/HomeworkPage'
 import { LessonPage } from '../features/admin/LessonPage'
@@ -115,6 +116,7 @@ export default function App() {
                   <Route path="homework/:studentId/:homeworkId" element={<AdminHomeworkDetailPage />} />
                   <Route path="mocks" element={<AdminMocksPage />} />
                   <Route path="mocks/:studentId/:mockId" element={<AdminMockPage />} />
+                  <Route path="catalog" element={<CatalogPage />} />
                   <Route path="useful" element={<UsefulPage />} />
                   <Route path="methodical" element={<MethodicalPage />} />
                   <Route path="files/:scope/:fileId" element={<FileViewPage />} />
