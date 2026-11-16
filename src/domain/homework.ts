@@ -433,3 +433,12 @@ export async function removeSubmissionFile(session: Session, homeworkId: string,
   }, 'Убран файл решения')
   await removeStored(session, meta)
 }
+
+/** Название вложения к заданию. */
+export async function renameHomeworkFile(session: Session, studentId: string, fileId: string, title: string): Promise<void> {
+  const file = await tutorFileOf(session, studentId)
+  await file.update((cur) => {
+    if (!cur) throw new Error('Данные ученика не найдены')
+    return { ...cur, files: (cur.files ?? []).map((f) => (f.id === fileId ? { ...f, title: title.trim() } : f)) }
+  }, 'Изменено название файла')
+}

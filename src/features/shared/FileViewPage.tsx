@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { useSession } from '../../core/auth/session'
 import { fromB64, type Bytes } from '../../core/crypto'
 import { formatBytes } from '../../core/disk'
-import { diskUrl, downloadFile, fileKind, loadBlob } from '../../domain/files'
+import { diskUrl, downloadFile, fileKind, fileTitle, loadBlob } from '../../domain/files'
 import type { FileMeta } from '../../domain/types'
 import { Button } from '../../ui/Button'
 import { ErrorState, errorMessage, Skeleton } from '../../ui/bits'
@@ -180,7 +180,7 @@ function OwnScope({ fileId }: { fileId: string }) {
 function Frame({ resolved, onBack }: { resolved: Resolved; onBack(): void }) {
   const session = useSession()
   const { meta, key, pending, error } = resolved
-  const title = useMemo(() => meta?.name ?? 'Файл', [meta])
+  const title = useMemo(() => (meta ? fileTitle(meta) : 'Файл'), [meta])
 
   if (pending) return <Skeleton className="h-96" />
   if (error) return <ErrorState error={error} />

@@ -1,7 +1,7 @@
 import { ArrowSquareOut } from '@phosphor-icons/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSession } from '../../core/auth/session'
-import { pickFiles } from '../../domain/files'
+import { pickFiles, renameSharedFiles } from '../../domain/files'
 import { addLessonFiles, KIND_LABEL, removeLessonFile } from '../../domain/lessons'
 import type { Lesson } from '../../domain/types'
 import { Panel } from '../../ui/bits'
@@ -50,6 +50,14 @@ export function LessonContent({ lesson, viewBase, manage }: LessonContentProps) 
                 manage
                   ? async (meta) => {
                       await removeLessonFile(session, lesson.id, meta)
+                      await refresh()
+                    }
+                  : undefined
+              }
+              onRename={
+                manage
+                  ? async (meta, title) => {
+                      await renameSharedFiles(session, { [meta.id]: title })
                       await refresh()
                     }
                   : undefined

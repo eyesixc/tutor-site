@@ -13,6 +13,7 @@ import {
   homeworkStatus,
   isDone,
   removeHomeworkFile,
+  renameHomeworkFile,
   setDoneByTutor,
   topicLabel,
   uncheckHomework,
@@ -299,6 +300,10 @@ export function AdminHomeworkDetailPage() {
                 fileKey={studentKey}
                 onRemove={async (meta) => {
                   await removeHomeworkFile(session, studentId, hw.id, meta)
+                  await refresh()
+                }}
+                onRename={async (meta, title) => {
+                  await renameHomeworkFile(session, studentId, meta.id, title)
                   await refresh()
                 }}
               />

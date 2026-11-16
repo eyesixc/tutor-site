@@ -4,7 +4,7 @@ import { useState, type FormEvent, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { useSession } from '../../core/auth/session'
 import { formatDay, TUTOR_TIMEZONE } from '../../core/time'
-import { fileKind, pickFiles, registerSharedFiles, removeStored } from '../../domain/files'
+import { fileKind, pickFiles, registerSharedFiles, removeStored, renameSharedFiles } from '../../domain/files'
 import { EGE_TASK_COUNT } from '../../domain/lessons'
 import {
   deleteMethodical,
@@ -52,13 +52,30 @@ function Loading() {
 }
 
 /** Файлы в форме материала: уже прикреплённые и только что загруженные. */
-export function FormFiles({ files, onAdd, onRemove }: { files: FileMeta[]; onAdd(m: FileMeta[]): void; onRemove(m: FileMeta): void }) {
+interface FormFilesProps {
+  files: FileMeta[]
+  onAdd(m: FileMeta[]): void
+  onRemove(m: FileMeta): void
+  /** Название файла, как у ссылки: оно показывается ученикам вместо имени файла. */
+  onRename(id: string, title: string): void
+}
+
+export function FormFiles({ files, onAdd, onRemove, onRename }: FormFilesProps) {
   return (
     <fieldset className="flex flex-col gap-2">
       <legend className="mb-1.5 text-sm font-medium">Файлы</legend>
-      {files.map((f) => (
-        <div key={f.id} className="flex items-center gap-2 rounded-control border border-line px-3 py-1.5">
-          <span className="min-w-0 flex-1 truncate text-sm">{f.name}</span>
+      {files.map((f, i) => (
+        <div key={f.id} className="flex flex-wrap items-center gap-2">
+          <input
+            aria-label={`Файл ${i + 1}: название`}
+            placeholder="Название"
+            value={f.title ?? ''}
+            onChange={(e) => onRename(f.id, e.target.value)}
+            className={cn(inputBase, 'min-w-0 flex-1 basis-40')}
+          />
+          <span className="min-w-0 flex-[2] basis-56 truncate text-sm text-muted" title={f.name}>
+            {f.name}
+          </span>
           <IconButton label={`Открепить ${f.name}`} onClick={() => onRemove(f)}>
             <X size={18} />
           </IconButton>
@@ -95,6 +112,7 @@ function useMaterialForm(initialFiles: FileMeta[], onClose: () => void, queryKey
   const [files, setFiles] = useState<FileMeta[]>(initialFiles)
   const [added, setAdded] = useState<FileMeta[]>([])
   const [removed, setRemoved] = useState<FileMeta[]>([])
+  const [renamed, setRenamed] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
   const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null)
 
@@ -103,8 +121,15 @@ function useMaterialForm(initialFiles: FileMeta[], onClose: () => void, queryKey
     setFieldError(null)
     setBusy(true)
     try {
-      await registerSharedFiles(session, added)
+      // Новые файлы регистрируются уже с названиями, у прежних названия обновляются.
+      await registerSharedFiles(
+        session,
+        added.map((f) => (f.id in renamed ? { ...f, title: renamed[f.id].trim() } : f)),
+      )
+      const addedIds = new Set(added.map((f) => f.id))
+      await renameSharedFiles(session, Object.fromEntries(Object.entries(renamed).filter(([id]) => !addedIds.has(id))))
       setAdded([])
+      setRenamed({})
       await save(files.map((f) => f.id))
       await dropSharedFiles(session, removed.map((f) => f.id))
       await Promise.all([
@@ -128,7 +153,8 @@ function useMaterialForm(initialFiles: FileMeta[], onClose: () => void, queryKey
   }
 
   return {
-    files,
+    files: files.map((f) => (f.id in renamed ? { ...f, title: renamed[f.id] } : f)),
+    rename: (id: string, title: string) => setRenamed((r) => ({ ...r, [id]: title })),
     busy,
     discard,
     err: (field: string) => (fieldError?.field === field ? fieldError.message : null),
@@ -168,7 +194,7 @@ function UsefulDialog({ item, files, onClose }: { item: UsefulItem | null; files
         <TextField label="Название" value={title} onChange={setTitle} error={form.err('title')} autoFocus />
         <TextField label="Тема" value={topic} onChange={setTopic} hint="Категория для фильтра, например: Python" />
         <TextAreaField label="Описание" value={description} onChange={setDescription} rows={3} />
-        <FormFiles files={form.files} onAdd={form.add} onRemove={form.remove} />
+        <FormFiles files={form.files} onAdd={form.add} onRemove={form.remove} onRename={form.rename} />
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-1.5 text-sm font-medium">Внешние ссылки</legend>
           {links.map((link, i) => (
@@ -407,7 +433,7 @@ function MethodicalDialog({ item, files, onClose }: { item: MethodicalItem | nul
           </SelectField>
         </div>
         <TextAreaField label="Описание" value={description} onChange={setDescription} rows={3} />
-        <FormFiles files={form.files} onAdd={form.add} onRemove={form.remove} />
+        <FormFiles files={form.files} onAdd={form.add} onRemove={form.remove} onRename={form.rename} />
         {form.err('file') && (
           <p role="alert" className="text-sm text-red">
             {form.err('file')}

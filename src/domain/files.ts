@@ -220,6 +220,23 @@ export async function unregisterSharedFile(session: Session, fileId: string): Pr
   )
 }
 
+/** Что показывать в списках: название от репетитора, а без него имя файла. */
+export function fileTitle(meta: Pick<FileMeta, 'name' | 'title'>): string {
+  return meta.title?.trim() || meta.name
+}
+
+/** Задаёт названия общим файлам. Пустое название возвращает показ имени файла. */
+export async function renameSharedFiles(session: Session, titles: Record<string, string>): Promise<void> {
+  if (session.bundle.role !== 'admin') throw new Error('Действие доступно только репетитору')
+  if (Object.keys(titles).length === 0) return
+  await sharedRegistry(session).update(
+    (cur) => ({
+      files: (cur?.files ?? []).map((f) => (f.id in titles ? { ...f, title: titles[f.id].trim() } : f)),
+    }),
+    'Изменены названия файлов',
+  )
+}
+
 export function pickFiles(all: FileMeta[] | undefined, ids: string[]): FileMeta[] {
   const map = new Map((all ?? []).map((f) => [f.id, f]))
   return ids.map((id) => map.get(id)).filter((f): f is FileMeta => !!f)

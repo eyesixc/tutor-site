@@ -4,7 +4,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useSession } from '../../core/auth/session'
-import { pickFiles, removeStored } from '../../domain/files'
+import { pickFiles, removeStored, renameSharedFiles } from '../../domain/files'
 import {
   addLessonFiles,
   autoLessonTitle,
@@ -59,6 +59,8 @@ export function LessonFormDialog({
   // Файлы применяются при сохранении: до этого новые лежат в хранилище без привязки.
   const [added, setAdded] = useState<FileMeta[]>([])
   const [removed, setRemoved] = useState<FileMeta[]>([])
+  const [renamed, setRenamed] = useState<Record<string, string>>({})
+  const withTitle = (f: FileMeta): FileMeta => (f.id in renamed ? { ...f, title: renamed[f.id] } : f)
   const existing = pickFiles(shared.data, lesson?.fileIds ?? []).filter((f) => !removed.some((r) => r.id === f.id))
 
   const discard = () => {
@@ -69,7 +71,15 @@ export function LessonFormDialog({
   const save = useMutation({
     mutationFn: async () => {
       const saved = await saveLesson(session, form, lesson?.id)
-      if (added.length > 0) await addLessonFiles(session, saved.id, added)
+      if (added.length > 0) {
+        await addLessonFiles(
+          session,
+          saved.id,
+          added.map((f) => (f.id in renamed ? { ...f, title: renamed[f.id].trim() } : f)),
+        )
+      }
+      const addedIds = new Set(added.map((f) => f.id))
+      await renameSharedFiles(session, Object.fromEntries(Object.entries(renamed).filter(([id]) => !addedIds.has(id))))
       for (const meta of removed) await removeLessonFile(session, saved.id, meta)
       return saved
     },
@@ -162,7 +172,8 @@ export function LessonFormDialog({
         />
 
         <FormFiles
-          files={[...existing, ...added]}
+          files={[...existing, ...added].map(withTitle)}
+          onRename={(id, title) => setRenamed((r) => ({ ...r, [id]: title }))}
           onAdd={(metas) => setAdded((a) => [...a, ...metas])}
           onRemove={(meta) => {
             if (added.some((a) => a.id === meta.id)) {
