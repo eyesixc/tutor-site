@@ -195,8 +195,11 @@ export async function deleteStudent(session: Session, studentId: string): Promis
 
   // Сначала закрываем вход, затем убираем данные.
   await session.site!.remove(authFilePath(student.loginHash), 'Удалён файл входа')
-  for (const name of await session.data.list(paths.studentDir(studentId))) {
-    await session.data.remove(`${paths.studentDir(studentId)}/${name}`, 'Удалён ученик')
+  // Личные файлы лежат во вложенной папке: её нужно очистить отдельно.
+  for (const dir of [paths.studentFilesDir(studentId), paths.studentDir(studentId)]) {
+    for (const name of await session.data.list(dir)) {
+      await session.data.remove(`${dir}/${name}`, 'Удалён ученик')
+    }
   }
   if (admin.diskToken) {
     await removeResource(admin.diskToken, `app:/students/${studentId}`)

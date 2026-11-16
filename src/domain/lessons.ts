@@ -1,9 +1,11 @@
 import type { Session } from '../core/auth/session'
 import { fromB64, newId } from '../core/crypto'
 import { jsonFile } from '../core/storage'
+import { listSharedFiles, registerSharedFiles, removeStored, unregisterSharedFile } from './files'
 import { listStudents, ValidationError } from './students'
 import {
   emptyStudentFile,
+  type FileMeta,
   emptyTutorFile,
   paths,
   type KeysFile,
@@ -89,6 +91,8 @@ export interface Overview {
   files: Record<string, TutorFile>
   /** То, что пишут сами ученики: отметки о выполнении и решения. */
   subs: Record<string, StudentFile>
+  /** Ключи учеников в base64: нужны, чтобы открывать их личные файлы. */
+  keys: Record<string, string>
 }
 
 export async function loadOverview(session: Session): Promise<Overview> {
@@ -114,6 +118,7 @@ export async function loadOverview(session: Session): Promise<Overview> {
     students,
     files: Object.fromEntries(entries.map(([id, file]) => [id, file])),
     subs: Object.fromEntries(entries.map(([id, , sub]) => [id, sub])),
+    keys: keys?.value.keys ?? {},
   }
 }
 
@@ -138,10 +143,47 @@ export async function deleteLesson(session: Session, lessonId: string): Promise<
       `Урок назначен или привязан к домашним заданиям: ${users.map((s) => s.name).join(', ')}. Сначала удалите эти занятия.`,
     )
   }
+  const lesson = (await listLessons(session)).find((l) => l.id === lessonId)
   await lessonsFile(session).update(
     (cur) => ({ lessons: (cur?.lessons ?? []).filter((l) => l.id !== lessonId) }),
     'Удалён урок',
   )
+  // Файлы урока больше никому не нужны: убираем их из хранилища.
+  const all = await listSharedFiles(session)
+  for (const id of lesson?.fileIds ?? []) {
+    const meta = all.find((f) => f.id === id)
+    if (meta) await removeStored(session, meta)
+    await unregisterSharedFile(session, id)
+  }
+}
+
+/** Прикрепляет к уроку уже загруженные файлы. Копий не создаётся: все ученики видят одни и те же файлы. */
+export async function addLessonFiles(session: Session, lessonId: string, metas: FileMeta[]): Promise<void> {
+  requireAdmin(session)
+  await registerSharedFiles(session, metas)
+  await lessonsFile(session).update((cur) => {
+    const lessons = cur?.lessons ?? []
+    if (!lessons.some((l) => l.id === lessonId)) throw new Error('Урок не найден')
+    return {
+      lessons: lessons.map((l) =>
+        l.id === lessonId ? { ...l, fileIds: [...l.fileIds, ...metas.map((m) => m.id)], updatedAt: new Date().toISOString() } : l,
+      ),
+    }
+  }, 'К уроку добавлены файлы')
+}
+
+export async function removeLessonFile(session: Session, lessonId: string, meta: FileMeta): Promise<void> {
+  requireAdmin(session)
+  await lessonsFile(session).update(
+    (cur) => ({
+      lessons: (cur?.lessons ?? []).map((l) =>
+        l.id === lessonId ? { ...l, fileIds: l.fileIds.filter((id) => id !== meta.id) } : l,
+      ),
+    }),
+    'Из урока убран файл',
+  )
+  await removeStored(session, meta)
+  await unregisterSharedFile(session, meta.id)
 }
 
 // ── Занятия: личные дата и время ученика для общего урока ──────────────────

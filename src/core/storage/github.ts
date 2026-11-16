@@ -1,4 +1,4 @@
-import { b64ToUtf8, utf8ToB64 } from '../crypto'
+import { b64ToUtf8, toB64, utf8ToB64 } from '../crypto'
 import { ConflictError, StorageError, type DataStore, type StoredFile } from './types'
 
 const API = 'https://api.github.com'
@@ -116,8 +116,10 @@ export function createGitHubStore(repo: string, token: string): DataStore {
     },
 
     async remove(path, message) {
-      const current = await read(path)
-      if (!current) return
+      const head = await githubRequest(token, url(path))
+      if (head.status === 404) return
+      if (!head.ok) throw await failure(head, `Не удалось удалить ${path}`)
+      const current = (await head.json()) as { sha: string }
       const res = await githubRequest(token, url(path), {
         method: 'DELETE',
         body: JSON.stringify({ message, sha: current.sha }),
@@ -126,6 +128,22 @@ export function createGitHubStore(repo: string, token: string): DataStore {
       if (!res.ok && res.status !== 404) {
         throw await failure(res, `Не удалось удалить ${path}`)
       }
+    },
+
+    async readBytes(path) {
+      const res = await githubRequest(token, url(path), { headers: { Accept: 'application/vnd.github.raw+json' } })
+      if (res.status === 404) return null
+      if (!res.ok) throw await failure(res, `Не удалось прочитать ${path}`)
+      return new Uint8Array(await res.arrayBuffer())
+    },
+
+    async writeBytes(path, bytes, message) {
+      const res = await githubRequest(token, url(path), {
+        method: 'PUT',
+        body: JSON.stringify({ message, content: toB64(bytes) }),
+      })
+      if (res.status === 409 || res.status === 422) throw new ConflictError(path)
+      if (!res.ok) throw await failure(res, `Не удалось сохранить ${path}`)
     },
 
     async list(dir) {

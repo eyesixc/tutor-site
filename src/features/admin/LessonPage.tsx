@@ -218,7 +218,7 @@ export function LessonPage() {
       />
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)]">
-        <LessonContent lesson={lesson} />
+        <LessonContent lesson={lesson} viewBase="/admin/files/shared" manage />
         <div className="flex flex-col gap-6">
           <AssignPanel lessonId={lesson.id} students={overview.data.students} />
           <Panel className="overflow-hidden">

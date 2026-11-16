@@ -2,11 +2,13 @@ import type { Session } from '../core/auth/session'
 import { fromB64, newId } from '../core/crypto'
 import { jsonFile } from '../core/storage'
 import { dayKey } from '../core/time'
+import { removeStored } from './files'
 import { EGE_TASK_COUNT } from './lessons'
 import { ValidationError } from './students'
 import {
   emptyStudentFile,
   paths,
+  type FileMeta,
   type Homework,
   type KeysFile,
   type StudentFile,
@@ -317,10 +319,18 @@ export async function uncheckHomework(session: Session, studentId: string, homew
 
 export async function deleteHomework(session: Session, studentId: string, homeworkId: string): Promise<void> {
   const file = await tutorFileOf(session, studentId)
+  let orphans: FileMeta[] = []
   await file.update((cur) => {
     if (!cur) throw new Error('Данные ученика не найдены')
-    return { ...cur, homework: cur.homework.filter((h) => h.id !== homeworkId) }
+    const ids = new Set(cur.homework.find((h) => h.id === homeworkId)?.fileIds ?? [])
+    orphans = (cur.files ?? []).filter((f) => ids.has(f.id))
+    return {
+      ...cur,
+      files: (cur.files ?? []).filter((f) => !ids.has(f.id)),
+      homework: cur.homework.filter((h) => h.id !== homeworkId),
+    }
   }, 'Удалено домашнее задание')
+  for (const meta of orphans) await removeStored(session, meta)
 }
 
 // ── Ученик ──────────────────────────────────────────────────────────────────
@@ -347,4 +357,79 @@ export async function markOwnHomework(session: Session, homeworkId: string, done
       },
     }
   }, done ? 'Работа отмечена выполненной' : 'Снята отметка о выполнении')
+}
+
+// ── Файлы ───────────────────────────────────────────────────────────────────
+
+/** Вложения репетитора к заданию: личные, зашифрованы ключом ученика. */
+export async function addHomeworkFiles(
+  session: Session,
+  studentId: string,
+  homeworkId: string,
+  metas: FileMeta[],
+): Promise<void> {
+  const file = await tutorFileOf(session, studentId)
+  await file.update((cur) => {
+    if (!cur?.homework.some((h) => h.id === homeworkId)) throw new Error('Задание не найдено')
+    return {
+      ...cur,
+      files: [...(cur.files ?? []), ...metas],
+      homework: cur.homework.map((h) =>
+        h.id === homeworkId ? { ...h, fileIds: [...h.fileIds, ...metas.map((m) => m.id)] } : h,
+      ),
+    }
+  }, 'К заданию добавлены файлы')
+}
+
+export async function removeHomeworkFile(
+  session: Session,
+  studentId: string,
+  homeworkId: string,
+  meta: FileMeta,
+): Promise<void> {
+  const file = await tutorFileOf(session, studentId)
+  await file.update((cur) => {
+    if (!cur) throw new Error('Данные ученика не найдены')
+    return {
+      ...cur,
+      files: (cur.files ?? []).filter((f) => f.id !== meta.id),
+      homework: cur.homework.map((h) =>
+        h.id === homeworkId ? { ...h, fileIds: h.fileIds.filter((id) => id !== meta.id) } : h,
+      ),
+    }
+  }, 'Из задания убран файл')
+  await removeStored(session, meta)
+}
+
+/** Ученик прикрепляет файлы решения. Пишет только в свой файл. */
+export async function addSubmissionFiles(session: Session, homeworkId: string, metas: FileMeta[]): Promise<void> {
+  if (session.bundle.role !== 'student') throw new Error('Прикрепить решение может только ученик')
+  await ownStudentFile(session).update((cur) => {
+    const file = cur ?? emptyStudentFile()
+    const previous = file.submissions[homeworkId] ?? { done: false, doneAt: null, fileIds: [] }
+    return {
+      ...file,
+      files: [...(file.files ?? []), ...metas],
+      submissions: {
+        ...file.submissions,
+        [homeworkId]: { ...previous, fileIds: [...previous.fileIds, ...metas.map((m) => m.id)] },
+      },
+    }
+  }, 'Прикреплено решение')
+}
+
+export async function removeSubmissionFile(session: Session, homeworkId: string, meta: FileMeta): Promise<void> {
+  if (session.bundle.role !== 'student') throw new Error('Убрать решение может только ученик')
+  await ownStudentFile(session).update((cur) => {
+    const file = cur ?? emptyStudentFile()
+    const previous = file.submissions[homeworkId]
+    return {
+      ...file,
+      files: (file.files ?? []).filter((f) => f.id !== meta.id),
+      submissions: previous
+        ? { ...file.submissions, [homeworkId]: { ...previous, fileIds: previous.fileIds.filter((id) => id !== meta.id) } }
+        : file.submissions,
+    }
+  }, 'Убран файл решения')
+  await removeStored(session, meta)
 }

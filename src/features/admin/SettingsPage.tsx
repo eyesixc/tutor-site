@@ -6,6 +6,8 @@ import { diskInfo, formatBytes, runDiskCheck } from '../../core/disk'
 import { isLocalRepo } from '../../core/storage'
 import { getRateLimit } from '../../core/storage/github'
 import { listStudents } from '../../domain/students'
+import { useOverview } from '../shared/data'
+import { useSharedFiles } from '../shared/filesUi'
 import { Button } from '../../ui/Button'
 import { Badge, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 
@@ -38,6 +40,15 @@ export function SettingsPage() {
     enabled: !!bundle.diskToken,
   })
   const check = useMutation({ mutationFn: () => runDiskCheck(bundle.diskToken) })
+  const shared = useSharedFiles()
+  const overview = useOverview()
+  const personal = Object.values(overview.data?.files ?? {})
+    .flatMap((f) => f.files ?? [])
+    .concat(Object.values(overview.data?.subs ?? {}).flatMap((f) => f.files ?? []))
+  const allFiles = [...(shared.data ?? []), ...personal]
+  const inRepo = allFiles.filter((f) => f.store === 'github')
+  const repoBytes = inRepo.reduce((sum, f) => sum + f.size, 0)
+  const REPO_SOFT_LIMIT = 1024 * 1024 * 1024
 
   const used = disk.data ? disk.data.usedSpace / disk.data.totalSpace : 0
 
@@ -51,6 +62,24 @@ export function SettingsPage() {
           status={students.isPending ? <Skeleton className="h-6 w-16" /> : <Badge>{students.data?.length ?? 0} из 10</Badge>}
         >
           Платформа рассчитана на 10 учеников. Больше создать можно, ограничение не техническое.
+        </Row>
+
+        <Row
+          title="Файлы"
+          status={
+            shared.isPending || overview.isPending ? (
+              <Skeleton className="h-6 w-20" />
+            ) : (
+              <Badge tone={repoBytes > REPO_SOFT_LIMIT * 0.8 ? 'warn' : 'neutral'}>{allFiles.length} шт.</Badge>
+            )
+          }
+        >
+          В репозитории: <span className="num text-ink">{inRepo.length}</span> файлов,{' '}
+          <span className="num text-ink">{formatBytes(repoBytes)}</span> из рекомендованного 1 ГБ. На Диске:{' '}
+          <span className="num text-ink">{allFiles.length - inRepo.length}</span> файлов. Общих:{' '}
+          <span className="num text-ink">{shared.data?.length ?? 0}</span>, личных:{' '}
+          <span className="num text-ink">{personal.length}</span>.
+          {repoBytes > REPO_SOFT_LIMIT * 0.8 && ' Репозиторий близок к рекомендованному пределу: удалите ненужные файлы.'}
         </Row>
 
         <Row

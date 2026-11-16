@@ -1,4 +1,4 @@
-import { BookOpen, ChartBar, ClipboardText, GearSix, House, Users } from '@phosphor-icons/react'
+import { BookOpen, ChartBar, ClipboardText, Files, GearSix, House, PlayCircle, Users } from '@phosphor-icons/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { SessionProvider, useAuth } from '../core/auth/session'
@@ -13,6 +13,8 @@ import { StudentPage } from '../features/admin/StudentPage'
 import { StudentsPage } from '../features/admin/StudentsPage'
 import { homePath, LoginPage } from '../features/auth/LoginPage'
 import { SetupPage } from '../features/auth/SetupPage'
+import { FileViewPage } from '../features/shared/FileViewPage'
+import { MethodicalPage, UsefulPage } from '../features/shared/MaterialsPages'
 import { useOwnData } from '../features/student/data'
 import { StudentHomePage } from '../features/student/HomePage'
 import { StudentHomeworkCardPage } from '../features/student/HomeworkCardPage'
@@ -35,6 +37,8 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/lessons', label: 'Уроки', icon: BookOpen },
   { to: '/admin/homework', label: 'Домашние задания', icon: ClipboardText },
   { to: '/admin/mocks', label: 'Пробники', icon: ChartBar },
+  { to: '/admin/useful', label: 'Полезные материалы', icon: PlayCircle },
+  { to: '/admin/methodical', label: 'Методички', icon: Files },
   { to: '/admin/settings', label: 'Настройки', icon: GearSix },
 ]
 
@@ -43,6 +47,8 @@ const STUDENT_NAV: NavItem[] = [
   { to: '/lessons', label: 'Уроки', icon: BookOpen },
   { to: '/homework', label: 'Домашние задания', icon: ClipboardText },
   { to: '/mocks', label: 'Пробники', icon: ChartBar },
+  { to: '/useful', label: 'Полезные материалы', icon: PlayCircle },
+  { to: '/methodical', label: 'Методички', icon: Files },
 ]
 
 /** Пускает только свою роль. Чужую отправляет на её главную, гостя — на вход. */
@@ -109,6 +115,9 @@ export default function App() {
                   <Route path="homework/:studentId/:homeworkId" element={<AdminHomeworkDetailPage />} />
                   <Route path="mocks" element={<AdminMocksPage />} />
                   <Route path="mocks/:studentId/:mockId" element={<AdminMockPage />} />
+                  <Route path="useful" element={<UsefulPage />} />
+                  <Route path="methodical" element={<MethodicalPage />} />
+                  <Route path="files/:scope/:fileId" element={<FileViewPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
               </Route>
@@ -122,6 +131,9 @@ export default function App() {
                   <Route path="/homework/:homeworkId" element={<StudentHomeworkCardPage />} />
                   <Route path="/mocks" element={<StudentMocksPage />} />
                   <Route path="/mocks/:mockId" element={<StudentMockPage />} />
+                  <Route path="/useful" element={<UsefulPage />} />
+                  <Route path="/methodical" element={<MethodicalPage />} />
+                  <Route path="/files/:scope/:fileId" element={<FileViewPage />} />
                 </Route>
               </Route>
 

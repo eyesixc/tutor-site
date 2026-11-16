@@ -74,7 +74,7 @@ export function StudentLessonPage() {
 
       {lesson ? (
         <div className="flex max-w-3xl flex-col gap-6">
-          <LessonContent lesson={lesson} />
+          <LessonContent lesson={lesson} viewBase="/files/shared" />
           {related.length > 0 && (
             <Panel className="overflow-hidden">
               <h2 className="px-5 pt-5 pb-3 text-lg">Домашнее задание к уроку</h2>

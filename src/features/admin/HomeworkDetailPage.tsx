@@ -3,12 +3,16 @@ import { useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useSession } from '../../core/auth/session'
+import { fromB64 } from '../../core/crypto'
 import { formatDay, formatTime, TUTOR_TIMEZONE } from '../../core/time'
+import { pickFiles } from '../../domain/files'
 import {
+  addHomeworkFiles,
   checkHomework,
   deleteHomework,
   homeworkStatus,
   isDone,
+  removeHomeworkFile,
   setDoneByTutor,
   topicLabel,
   uncheckHomework,
@@ -23,6 +27,7 @@ import { inputBase, TextAreaField, TextField } from '../../ui/Field'
 import { ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
 import { useLessons, useOverview, useRefresh } from '../shared/data'
+import { FileList, Uploader } from '../shared/filesUi'
 import { Facts, scoreText, StatusBadge } from '../shared/homeworkUi'
 import {
   deadlineParts,
@@ -216,6 +221,10 @@ export function AdminHomeworkDetailPage() {
   const status = homeworkStatus(hw, submission)
   const done = isDone(hw, submission)
   const lesson = hw.lessonId ? findLesson(lessons.data, hw.lessonId) : null
+  const studentKey = fromB64(overview.data.keys[studentId])
+  const viewBase = `/admin/files/${studentId}`
+  const attachments = pickFiles(overview.data.files[studentId].files, hw.fileIds)
+  const solution = pickFiles(overview.data.subs[studentId].files, submission?.fileIds ?? [])
 
   const toggleDone = async () => {
     setToggling(true)
@@ -278,6 +287,40 @@ export function AdminHomeworkDetailPage() {
               <p className="mt-2 max-w-[65ch] whitespace-pre-line">{hw.instructions}</p>
             ) : (
               <p className="mt-2 text-muted">Инструкция не заполнена.</p>
+            )}
+          </Panel>
+
+          <Panel className="overflow-hidden">
+            <h2 className="px-5 pt-5 pb-3 text-lg">Файлы к заданию</h2>
+            {attachments.length > 0 && (
+              <FileList
+                files={attachments}
+                viewBase={viewBase}
+                fileKey={studentKey}
+                onRemove={async (meta) => {
+                  await removeHomeworkFile(session, studentId, hw.id, meta)
+                  await refresh()
+                }}
+              />
+            )}
+            <div className="border-t border-line p-4 sm:px-5">
+              <Uploader
+                scope={{ kind: 'student', studentId, key: studentKey }}
+                hint="Условия, шаблоны, примеры. Видит только этот ученик"
+                onUploaded={async (metas) => {
+                  await addHomeworkFiles(session, studentId, hw.id, metas)
+                  await refresh()
+                }}
+              />
+            </div>
+          </Panel>
+
+          <Panel className="overflow-hidden">
+            <h2 className="px-5 pt-5 pb-3 text-lg">Решение ученика</h2>
+            {solution.length > 0 ? (
+              <FileList files={solution} viewBase={viewBase} fileKey={studentKey} />
+            ) : (
+              <p className="border-t border-line px-5 py-4 text-sm text-muted">Ученик пока не прикрепил файлы.</p>
             )}
           </Panel>
 

@@ -1,4 +1,4 @@
-import { newId } from '../crypto'
+import { fromB64, newId, toB64 } from '../crypto'
 import { ConflictError, type DataStore } from './types'
 
 // Хранилище в localStorage с тем же поведением, что и у GitHub (версии, конфликты).
@@ -31,6 +31,14 @@ export function createLocalStore(repo: string): DataStore {
     },
     async remove(path) {
       localStorage.removeItem(prefix + path)
+    },
+    async readBytes(path) {
+      const entry = get(path)
+      return entry ? fromB64(entry.text) : null
+    },
+    async writeBytes(path, bytes) {
+      if (get(path)) throw new ConflictError(path)
+      localStorage.setItem(prefix + path, JSON.stringify({ text: toB64(bytes), sha: newId(16) }))
     },
     async list(dir) {
       const base = prefix + dir.replace(/\/$/, '') + '/'

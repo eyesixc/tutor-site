@@ -102,12 +102,70 @@ export interface MockExam {
   tasks: MockExamTask[]
 }
 
+/** Сведения о загруженном файле. Само содержимое лежит в репозитории данных или на Диске. */
+export interface FileMeta {
+  id: string
+  name: string
+  mime: string
+  size: number
+  /** github: до 20 МБ, читается сайтом; disk: крупные файлы и видео. */
+  store: 'github' | 'disk'
+  path: string
+  uploadedAt: string
+  /** Личные файлы в репозитории зашифрованы ключом ученика. */
+  encrypted: boolean
+}
+
+/** shared/files.json */
+export interface SharedFilesFile {
+  files: FileMeta[]
+}
+
+export interface MaterialLink {
+  title: string
+  url: string
+}
+
+/** Полезный материал: видео, картинка, файлы и ссылки. Общий для всех учеников. */
+export interface UsefulItem {
+  id: string
+  title: string
+  description: string
+  topic: string
+  fileIds: string[]
+  links: MaterialLink[]
+  createdAt: string
+}
+
+/** shared/useful.json */
+export interface UsefulFile {
+  items: UsefulItem[]
+}
+
+/** Методичка: файлы по теме или номеру задания. Общая для всех учеников. */
+export interface MethodicalItem {
+  id: string
+  title: string
+  description: string
+  egeTask: number | null
+  topic: string
+  fileIds: string[]
+  createdAt: string
+}
+
+/** shared/methodical.json */
+export interface MethodicalFile {
+  items: MethodicalItem[]
+}
+
 /** students/<id>/tutor.enc — пишет только репетитор. */
 export interface TutorFile {
   profile: StudentProfile
   sessions: LessonSession[]
   homework: Homework[]
   mockExams: MockExam[]
+  /** Личные файлы от репетитора: вложения к заданиям. */
+  files?: FileMeta[]
 }
 
 export interface Submission {
@@ -120,6 +178,8 @@ export interface Submission {
 export interface StudentFile {
   submissions: Record<string, Submission>
   videoProgress: Record<string, number>
+  /** Файлы решений, загруженные учеником. */
+  files?: FileMeta[]
 }
 
 export const paths = {
@@ -129,6 +189,8 @@ export const paths = {
   tutorFile: (studentId: string) => `students/${studentId}/tutor.enc`,
   studentFile: (studentId: string) => `students/${studentId}/student.enc`,
   studentDir: (studentId: string) => `students/${studentId}`,
+  studentFilesDir: (studentId: string) => `students/${studentId}/files`,
+  sharedFilesDir: 'files',
   shared: {
     lessons: 'shared/lessons.json',
     files: 'shared/files.json',

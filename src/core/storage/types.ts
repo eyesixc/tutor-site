@@ -17,6 +17,10 @@ export interface DataStore {
   remove(path: string, message: string): Promise<void>
   /** Имена файлов в папке (без вложенных папок). */
   list(dir: string): Promise<string[]>
+  /** Двоичный файл целиком. */
+  readBytes(path: string): Promise<Uint8Array<ArrayBuffer> | null>
+  /** Создаёт двоичный файл. Путь должен быть новым. */
+  writeBytes(path: string, bytes: Uint8Array<ArrayBuffer>, message: string): Promise<void>
 }
 
 export class ConflictError extends Error {

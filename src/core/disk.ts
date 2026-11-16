@@ -60,11 +60,17 @@ export async function ensureFolder(token: string, path: string): Promise<void> {
   if (!res.ok && res.status !== 409) throw new DiskError(describe(res.status, 'Не удалось создать папку'), res.status)
 }
 
-export async function uploadFile(token: string, path: string, body: Blob): Promise<void> {
+/** Адрес, на который браузер отправляет содержимое файла. */
+export async function uploadLink(token: string, path: string): Promise<string> {
   const { href } = await json<{ href: string }>(
     await call(token, `/resources/upload?path=${q(path)}&overwrite=true`),
     'Не удалось начать загрузку',
   )
+  return href
+}
+
+export async function uploadFile(token: string, path: string, body: Blob): Promise<void> {
+  const href = await uploadLink(token, path)
   let res: Response
   try {
     res = await fetch(href, { method: 'PUT', body })
