@@ -19,7 +19,7 @@ import { ValidationError } from '../../domain/students'
 import type { Homework, Lesson } from '../../domain/types'
 import { Button } from '../../ui/Button'
 import { ConfirmDialog, Dialog, DialogActions } from '../../ui/Dialog'
-import { inputClass, TextAreaField, TextField } from '../../ui/Field'
+import { inputBase, TextAreaField, TextField } from '../../ui/Field'
 import { ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
 import { useLessons, useOverview, useRefresh } from '../shared/data'
@@ -87,14 +87,14 @@ function EditDialog({
               aria-label="Дата дедлайна"
               value={deadline.date}
               onChange={(e) => setDeadline((d) => ({ ...d, date: e.target.value }))}
-              className={cn(inputClass, 'num w-44')}
+              className={cn(inputBase, 'num w-44')}
             />
             <input
               type="time"
               aria-label="Время дедлайна"
               value={deadline.time}
               onChange={(e) => setDeadline((d) => ({ ...d, time: e.target.value }))}
-              className={cn(inputClass, 'num w-32')}
+              className={cn(inputBase, 'num w-32')}
             />
           </div>
           {err('deadline') && (

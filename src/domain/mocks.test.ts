@@ -1,0 +1,109 @@
+import { describe, expect, it } from 'vitest'
+import { CATALOGS, mocksStats, mockTotals, taskKind, validateTasks } from './mocks'
+import type { MockExam } from './types'
+
+function mock(id: string, date: string, scores: Record<number, number | null>, fill: number | null = null): MockExam {
+  return {
+    id,
+    title: `Пробник ${id}`,
+    date,
+    comment: '',
+    catalogVersion: 'ege-2027',
+    tasks: CATALOGS[0].tasks.map((t) => ({
+      ...t,
+      comment: '',
+      score: t.number in scores ? scores[t.number] : fill === null ? null : Math.min(fill, t.maxScore),
+    })),
+  }
+}
+
+/** Все задания на полный балл, кроме перечисленных. */
+const fullExcept = (id: string, date: string, scores: Record<number, number>) => {
+  const m = mock(id, date, {})
+  m.tasks = m.tasks.map((t) => ({ ...t, score: t.number in scores ? scores[t.number] : t.maxScore }))
+  return m
+}
+
+describe('справочник', () => {
+  it('27 заданий, максимум 29 первичных баллов', () => {
+    const tasks = CATALOGS[0].tasks
+    expect(tasks).toHaveLength(27)
+    expect(tasks.reduce((s, t) => s + t.maxScore, 0)).toBe(29)
+    expect(tasks[25].maxScore).toBe(2)
+  })
+})
+
+describe('итоги пробника', () => {
+  it('частичный балл не считается ни полным, ни нулём', () => {
+    expect(taskKind({ number: 26, topic: '', maxScore: 2, score: 1, comment: '' })).toBe('partial')
+    expect(taskKind({ number: 26, topic: '', maxScore: 2, score: 2, comment: '' })).toBe('full')
+    expect(taskKind({ number: 26, topic: '', maxScore: 2, score: 0, comment: '' })).toBe('zero')
+    expect(taskKind({ number: 26, topic: '', maxScore: 2, score: null, comment: '' })).toBe('unscored')
+  })
+
+  it('считает баллы, процент и количества', () => {
+    const totals = mockTotals(fullExcept('2', '2026-10-29', { 8: 0, 15: 0, 22: 0, 24: 0, 26: 1, 27: 0 }))
+    expect(totals.score).toBe(22)
+    expect(totals.max).toBe(29)
+    expect(totals.percent).toBe(76)
+    expect(totals.full).toBe(21)
+    expect(totals.partial).toBe(1)
+    expect(totals.zero).toBe(5)
+    expect(totals.unscored).toBe(0)
+  })
+
+  it('пробник без баллов не даёт процента', () => {
+    expect(mockTotals(mock('x', '2026-11-01', {})).percent).toBeNull()
+  })
+
+  it('не принимает балл выше максимума', () => {
+    const m = mock('x', '2026-11-01', { 1: 2 })
+    expect(() => validateTasks(m.tasks)).toThrow()
+  })
+})
+
+describe('статистика пробников', () => {
+  const first = fullExcept('1', '2026-09-24', { 8: 0, 11: 0, 15: 0, 18: 0, 22: 0, 23: 0, 24: 0, 26: 0, 27: 0 })
+  const second = fullExcept('2', '2026-10-29', { 8: 0, 15: 0, 22: 0, 24: 0, 26: 1, 27: 0 })
+  const empty = mock('3', '2026-11-26', {})
+  const stats = mocksStats([second, empty, first])
+
+  it('учитывает только проверенные пробники и идёт по датам', () => {
+    expect(stats.count).toBe(2)
+    expect(stats.trend.map((p) => p.percent)).toEqual([62, 76])
+    expect(stats.scoreSum).toBe(40)
+    expect(stats.maxSum).toBe(58)
+    expect(stats.averagePercent).toBe(69)
+    expect(stats.bestPercent).toBe(76)
+  })
+
+  it('считает полные, частичные и нулевые задания', () => {
+    expect(stats.full).toBe(39)
+    expect(stats.partial).toBe(1)
+    expect(stats.zero).toBe(14)
+  })
+
+  it('ошибки по номерам: сколько раз и сколько баллов потеряно', () => {
+    const byNumber = Object.fromEntries(stats.byNumber.map((r) => [r.key, r]))
+    expect(byNumber['8'].times).toBe(2)
+    expect(byNumber['11'].times).toBe(1)
+    expect(byNumber['1'].times).toBe(0)
+    expect(byNumber['26'].lostPoints).toBe(3)
+    expect(byNumber['26'].maxPoints).toBe(4)
+    expect(byNumber['26'].attempts).toBe(2)
+  })
+
+  it('ошибки по темам объединяют задания одной темы', () => {
+    expect(stats.byTopic[0].label).toBe('Кластеризация')
+    expect(stats.byTopic[0].lostPoints).toBe(4)
+    expect(stats.byTopic.every((r) => r.lostPoints > 0)).toBe(true)
+  })
+
+  it('изменение справочника не меняет старый пробник', () => {
+    const snapshot = JSON.stringify(first.tasks)
+    const original = CATALOGS[0].tasks[0].topic
+    CATALOGS[0].tasks[0].topic = 'Новая тема'
+    expect(JSON.stringify(first.tasks)).toBe(snapshot)
+    CATALOGS[0].tasks[0].topic = original
+  })
+})

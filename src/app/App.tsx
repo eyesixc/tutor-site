@@ -1,4 +1,4 @@
-import { BookOpen, ClipboardText, GearSix, House, Users } from '@phosphor-icons/react'
+import { BookOpen, ChartBar, ClipboardText, GearSix, House, Users } from '@phosphor-icons/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { SessionProvider, useAuth } from '../core/auth/session'
@@ -7,6 +7,7 @@ import { AdminHomeworkDetailPage } from '../features/admin/HomeworkDetailPage'
 import { AdminHomeworkPage } from '../features/admin/HomeworkPage'
 import { LessonPage } from '../features/admin/LessonPage'
 import { LessonsPage } from '../features/admin/LessonsPage'
+import { AdminMockPage, AdminMocksPage } from '../features/admin/MocksPage'
 import { SettingsPage } from '../features/admin/SettingsPage'
 import { StudentPage } from '../features/admin/StudentPage'
 import { StudentsPage } from '../features/admin/StudentsPage'
@@ -18,6 +19,7 @@ import { StudentHomeworkCardPage } from '../features/student/HomeworkCardPage'
 import { StudentHomeworkPage } from '../features/student/HomeworkPage'
 import { StudentLessonPage } from '../features/student/LessonPage'
 import { StudentLessonsPage } from '../features/student/LessonsPage'
+import { StudentMockPage, StudentMocksPage } from '../features/student/MocksPage'
 import { AppShell, type NavItem } from '../ui/AppShell'
 import { ThemeProvider } from '../ui/theme'
 
@@ -32,6 +34,7 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin/students', label: 'Ученики', icon: Users },
   { to: '/admin/lessons', label: 'Уроки', icon: BookOpen },
   { to: '/admin/homework', label: 'Домашние задания', icon: ClipboardText },
+  { to: '/admin/mocks', label: 'Пробники', icon: ChartBar },
   { to: '/admin/settings', label: 'Настройки', icon: GearSix },
 ]
 
@@ -39,6 +42,7 @@ const STUDENT_NAV: NavItem[] = [
   { to: '/', label: 'Главная', icon: House, end: true },
   { to: '/lessons', label: 'Уроки', icon: BookOpen },
   { to: '/homework', label: 'Домашние задания', icon: ClipboardText },
+  { to: '/mocks', label: 'Пробники', icon: ChartBar },
 ]
 
 /** Пускает только свою роль. Чужую отправляет на её главную, гостя — на вход. */
@@ -103,6 +107,8 @@ export default function App() {
                   <Route path="lessons/:lessonId" element={<LessonPage />} />
                   <Route path="homework" element={<AdminHomeworkPage />} />
                   <Route path="homework/:studentId/:homeworkId" element={<AdminHomeworkDetailPage />} />
+                  <Route path="mocks" element={<AdminMocksPage />} />
+                  <Route path="mocks/:studentId/:mockId" element={<AdminMockPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
               </Route>
@@ -114,6 +120,8 @@ export default function App() {
                   <Route path="/lessons/:sessionId" element={<StudentLessonPage />} />
                   <Route path="/homework" element={<StudentHomeworkPage />} />
                   <Route path="/homework/:homeworkId" element={<StudentHomeworkCardPage />} />
+                  <Route path="/mocks" element={<StudentMocksPage />} />
+                  <Route path="/mocks/:mockId" element={<StudentMockPage />} />
                 </Route>
               </Route>
 

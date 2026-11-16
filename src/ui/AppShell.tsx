@@ -46,7 +46,7 @@ function NavList({ nav, onNavigate }: { nav: NavItem[]; onNavigate?(): void }) {
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              'flex h-11 items-center gap-3 rounded-control px-3 font-medium transition-colors duration-150',
+              'flex h-11 items-center gap-3 rounded-control px-3 font-medium whitespace-nowrap transition-colors duration-150',
               isActive ? 'bg-pen-soft text-pen' : 'text-muted hover:bg-sunken hover:text-ink',
             )
           }
@@ -84,7 +84,7 @@ export function AppShell({ nav, userName, userCaption, onSignOut, children }: Ap
   const current = nav.find((item) => (item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)))
 
   return (
-    <div className="min-h-dvh lg:pl-58">
+    <div className="min-h-dvh lg:pl-64">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-control focus:bg-pen focus:px-3 focus:py-2 focus:text-pen-ink"
@@ -92,7 +92,7 @@ export function AppShell({ nav, userName, userCaption, onSignOut, children }: Ap
         Перейти к содержимому
       </a>
 
-      <aside className="fixed inset-y-0 left-0 hidden w-58 flex-col gap-6 border-r border-line bg-surface p-3 pt-5 lg:flex">
+      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col gap-6 border-r border-line bg-surface p-3 pt-5 lg:flex">
         <Brand />
         <div className="flex-1 overflow-y-auto">
           <NavList nav={nav} />

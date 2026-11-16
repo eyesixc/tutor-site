@@ -9,7 +9,7 @@ import { ValidationError } from '../../domain/students'
 import type { Lesson } from '../../domain/types'
 import { Button, IconButton } from '../../ui/Button'
 import { Dialog, DialogActions } from '../../ui/Dialog'
-import { inputClass, SelectField, TextAreaField, TextField } from '../../ui/Field'
+import { inputBase, inputClass, SelectField, TextAreaField, TextField } from '../../ui/Field'
 import { EmptyState, ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
 import { useLessons, useOverview, useRefresh } from '../shared/data'
@@ -117,7 +117,7 @@ export function LessonFormDialog({
                 placeholder="Название"
                 value={link.title}
                 onChange={(e) => setLink(i, { title: e.target.value })}
-                className={cn(inputClass, 'min-w-0 flex-1 basis-40')}
+                className={cn(inputBase, 'min-w-0 flex-1 basis-40')}
               />
               <input
                 aria-label={`Ссылка ${i + 1}: адрес`}
@@ -125,7 +125,7 @@ export function LessonFormDialog({
                 inputMode="url"
                 value={link.url}
                 onChange={(e) => setLink(i, { url: e.target.value })}
-                className={cn(inputClass, 'min-w-0 flex-[2] basis-56')}
+                className={cn(inputBase, 'min-w-0 flex-[2] basis-56')}
               />
               <IconButton
                 label={`Убрать ссылку ${i + 1}`}

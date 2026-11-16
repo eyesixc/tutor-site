@@ -7,11 +7,13 @@ import {
 } from 'react'
 import { cn } from './cn'
 
-const controlClass =
-  'h-11 w-full rounded-control border border-line bg-surface px-3 text-base text-ink ' +
+const controlBase =
+  'h-11 rounded-control border border-line bg-surface px-3 text-base text-ink ' +
   'placeholder:text-muted/70 transition-colors duration-150 ' +
   'hover:border-muted/60 focus:border-pen focus:outline-none focus:ring-2 focus:ring-pen/25 ' +
   'aria-invalid:border-red aria-invalid:focus:ring-red/25 disabled:opacity-60'
+
+const controlClass = controlBase + ' w-full'
 
 interface WrapperProps {
   label: string
@@ -92,8 +94,11 @@ export function TextAreaField({ label, hint, error, value, onChange, className, 
   )
 }
 
-/** Класс для полей ввода вне FieldShell (плотные строки с датой и временем). */
+/** Поле на всю ширину вне FieldShell. */
 export const inputClass = controlClass
+
+/** Поле, ширину которого задаёт место использования (дата, время, строки ссылок). */
+export const inputBase = controlBase
 
 type SelectFieldProps =WrapperProps &
   Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value'> & {

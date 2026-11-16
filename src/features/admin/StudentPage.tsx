@@ -9,7 +9,10 @@ import { MonthCalendar, type CalendarEvent } from '../../ui/MonthCalendar'
 import { ErrorState, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { useLessons, useOverview } from '../shared/data'
 import { HomeworkStatsPanel } from '../shared/homeworkUi'
+import { mocksStats, sortMocks } from '../../domain/mocks'
+import { MocksStatsPanel } from '../shared/mocksUi'
 import { AdminHomeworkRow, HomeworkCreateDialog } from './HomeworkPage'
+import { AdminMockRow, MockCreateDialog } from './MocksPage'
 import { SessionList, type SessionEntry } from './SessionList'
 
 /** Кабинет ученика глазами репетитора: всё личное можно править. */
@@ -19,6 +22,7 @@ export function StudentPage() {
   const overview = useOverview()
   const lessons = useLessons()
   const [assigning, setAssigning] = useState(false)
+  const [addingMock, setAddingMock] = useState(false)
 
   const student = overview.data?.students.find((s) => s.id === studentId)
   const file = overview.data?.files[studentId]
@@ -68,6 +72,8 @@ export function StudentPage() {
     'default',
     () => '',
   )
+
+  const mocks = sortMocks(overview.data.files[studentId].mockExams)
 
   return (
     <>
@@ -129,6 +135,28 @@ export function StudentPage() {
 
         {homework.length > 0 && <HomeworkStatsPanel views={homework} timeZone={TUTOR_TIMEZONE} />}
 
+        <Panel className="overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-5">
+            <h2 className="text-lg">Пробники</h2>
+            <Button size="sm" icon={<Plus size={16} weight="bold" />} onClick={() => setAddingMock(true)}>
+              Создать пробник
+            </Button>
+          </div>
+          <div className="border-t border-line">
+            {mocks.length === 0 ? (
+              <p className="px-4 py-4 text-sm text-muted sm:px-5">Пробников у этого ученика ещё не было.</p>
+            ) : (
+              <ul>
+                {mocks.map((mock) => (
+                  <AdminMockRow key={mock.id} mock={mock} studentId={studentId} />
+                ))}
+              </ul>
+            )}
+          </div>
+        </Panel>
+
+        <MocksStatsPanel stats={mocksStats(mocks)} />
+
         {past.length > 0 && (
           <Panel className="overflow-hidden">
             <h2 className="px-4 pt-4 pb-3 text-lg sm:px-5">Прошедшие занятия</h2>
@@ -139,6 +167,9 @@ export function StudentPage() {
         )}
       </div>
 
+      {addingMock && (
+        <MockCreateDialog students={overview.data.students} presetStudentId={studentId} onClose={() => setAddingMock(false)} />
+      )}
       {assigning && (
         <HomeworkCreateDialog
           students={overview.data.students}

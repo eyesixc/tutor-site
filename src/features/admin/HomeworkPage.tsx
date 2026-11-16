@@ -17,7 +17,7 @@ import { ValidationError } from '../../domain/students'
 import type { Lesson, StudentRecord } from '../../domain/types'
 import { Button } from '../../ui/Button'
 import { Dialog, DialogActions } from '../../ui/Dialog'
-import { inputClass } from '../../ui/Field'
+import { inputBase } from '../../ui/Field'
 import { EmptyState, ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
 import { useLessons, useOverview, useRefresh } from '../shared/data'
@@ -126,14 +126,14 @@ export function HomeworkCreateDialog({
                       aria-label={`${s.name}: дата дедлайна`}
                       value={t.date}
                       onChange={(e) => patch(s.id, { date: e.target.value })}
-                      className={cn(inputClass, 'num w-40 text-sm')}
+                      className={cn(inputBase, 'num w-40 text-sm')}
                     />
                     <input
                       type="time"
                       aria-label={`${s.name}: время дедлайна`}
                       value={t.time}
                       onChange={(e) => patch(s.id, { time: e.target.value })}
-                      className={cn(inputClass, 'num w-28 text-sm')}
+                      className={cn(inputBase, 'num w-28 text-sm')}
                     />
                   </div>
                 )}

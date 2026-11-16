@@ -18,7 +18,7 @@ import { ValidationError } from '../../domain/students'
 import type { LessonSession } from '../../domain/types'
 import { Button, IconButton } from '../../ui/Button'
 import { ConfirmDialog, Dialog, DialogActions } from '../../ui/Dialog'
-import { inputClass } from '../../ui/Field'
+import { inputBase } from '../../ui/Field'
 import { Badge, errorMessage } from '../../ui/bits'
 import { cn } from '../../ui/cn'
 import { useRefresh } from '../shared/data'
@@ -53,21 +53,21 @@ export function TimingFields({
         aria-label={`${labelPrefix}: дата`}
         value={date}
         onChange={(e) => onChange({ date: e.target.value })}
-        className={cn(inputClass, 'num w-40 text-sm')}
+        className={cn(inputBase, 'num w-40 text-sm')}
       />
       <input
         type="time"
         aria-label={`${labelPrefix}: начало`}
         value={start}
         onChange={(e) => onChange({ start: e.target.value })}
-        className={cn(inputClass, 'num w-28 text-sm')}
+        className={cn(inputBase, 'num w-28 text-sm')}
       />
       <input
         type="time"
         aria-label={`${labelPrefix}: окончание`}
         value={end}
         onChange={(e) => onChange({ end: e.target.value })}
-        className={cn(inputClass, 'num w-28 text-sm')}
+        className={cn(inputBase, 'num w-28 text-sm')}
       />
     </div>
   )
