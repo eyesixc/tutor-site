@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nextSession, validateLessonInput, validateTiming } from './lessons'
+import { autoLessonTitle, nextSession, validateLessonInput, validateTiming } from './lessons'
 import type { LessonSession } from './types'
 
 const s = (
@@ -53,6 +53,7 @@ describe('проверка форм', () => {
       topic: ' Задание 16 ',
       description: '',
       egeTask: 16,
+      kind: 'theory',
       links: [
         { title: '', url: '' },
         { title: '', url: 'https://example.org/a' },
@@ -64,8 +65,20 @@ describe('проверка форм', () => {
   })
 
   it('не принимает опасные ссылки и неверный номер задания', () => {
-    const base = { title: 'Урок', topic: '', description: '', egeTask: null, links: [] }
+    const base = { title: 'Урок', topic: '', description: '', egeTask: null, kind: null, links: [] }
     expect(() => validateLessonInput({ ...base, links: [{ title: 'x', url: 'javascript:alert(1)' }] })).toThrow()
     expect(() => validateLessonInput({ ...base, egeTask: 28 })).toThrow()
+  })
+})
+
+describe('название урока по типу', () => {
+  it('собирает «№ N. Теория» и «№ N. Практика»', () => {
+    expect(autoLessonTitle(16, 'theory')).toBe('№ 16. Теория')
+    expect(autoLessonTitle(5, 'practice')).toBe('№ 5. Практика')
+  })
+
+  it('без номера оставляет только тип, без типа ничего не подставляет', () => {
+    expect(autoLessonTitle(null, 'practice')).toBe('Практика')
+    expect(autoLessonTitle(16, null)).toBe('')
   })
 })

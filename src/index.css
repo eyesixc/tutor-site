@@ -20,6 +20,8 @@
   --ok-soft: #e3f3ea;
   --warn: #9a5a06;
   --warn-soft: #fbf0db;
+  --prac: #7a35b8;
+  --prac-soft: #f1e8fb;
   --overlay: rgb(23 26 33 / 0.45);
   --shadow-pop: 0 12px 32px -8px rgb(23 32 66 / 0.22), 0 2px 6px rgb(23 32 66 / 0.08);
   color-scheme: light;
@@ -41,6 +43,8 @@
   --ok-soft: #16301f;
   --warn: #e5b25d;
   --warn-soft: #33270f;
+  --prac: #cfa6fa;
+  --prac-soft: #2c1f42;
   --overlay: rgb(4 6 10 / 0.66);
   --shadow-pop: 0 16px 40px -8px rgb(0 0 0 / 0.6), 0 2px 6px rgb(0 0 0 / 0.4);
   color-scheme: dark;
@@ -62,6 +66,8 @@
   --color-ok-soft: var(--ok-soft);
   --color-warn: var(--warn);
   --color-warn-soft: var(--warn-soft);
+  --color-prac: var(--prac);
+  --color-prac-soft: var(--prac-soft);
   --color-overlay: var(--overlay);
   --font-sans: 'Golos Text Variable', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;

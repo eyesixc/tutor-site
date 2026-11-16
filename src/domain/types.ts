@@ -32,6 +32,8 @@ export interface LessonLink {
   url: string
 }
 
+export type LessonKind = 'theory' | 'practice'
+
 /** Урок из общей библиотеки. Создаётся один раз и назначается разным ученикам. */
 export interface Lesson {
   id: string
@@ -39,6 +41,8 @@ export interface Lesson {
   topic: string
   description: string
   egeTask: number | null
+  /** Тип урока. У уроков, созданных до появления типов, поля нет. */
+  kind?: LessonKind | null
   links: LessonLink[]
   fileIds: string[]
   createdAt: string

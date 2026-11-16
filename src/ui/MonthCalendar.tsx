@@ -26,6 +26,8 @@ export interface CalendarEvent {
   caption?: string
   to: string
   cancelled?: boolean
+  /** Тип урока: теория и практика подсвечиваются по-разному. */
+  kind?: 'theory' | 'practice' | null
 }
 
 interface MonthCalendarProps {
@@ -35,7 +37,16 @@ interface MonthCalendarProps {
 
 const MAX_IN_CELL = 3
 
+const KIND_TAG = { theory: 'Т', practice: 'П' } as const
+
+function dotClass(event: CalendarEvent): string {
+  if (event.cancelled) return 'bg-muted/50'
+  return event.kind === 'practice' ? 'bg-prac' : 'bg-pen'
+}
+
 function chipClass(event: CalendarEvent, isPast: boolean): string {
+  if (!event.cancelled && !isPast && event.kind === 'practice') return 'bg-prac-soft text-prac'
+
   if (event.cancelled) return 'bg-sunken text-muted line-through'
   return isPast ? 'bg-sunken text-muted' : 'bg-pen-soft text-pen'
 }
@@ -125,7 +136,7 @@ export function MonthCalendar({ events, timeZone }: MonthCalendarProps) {
               {list.length > 0 && (
                 <span className="flex justify-center gap-0.5 sm:hidden" aria-hidden>
                   {list.slice(0, 3).map((e) => (
-                    <span key={e.id} className={cn('size-1.5 rounded-full', e.cancelled ? 'bg-muted/50' : 'bg-pen')} />
+                    <span key={e.id} className={cn('size-1.5 rounded-full', dotClass(e))} />
                   ))}
                 </span>
               )}
@@ -137,7 +148,14 @@ export function MonthCalendar({ events, timeZone }: MonthCalendarProps) {
                     to={e.to}
                     className={cn('rounded-[6px] px-1.5 py-1 text-xs leading-tight', chipClass(e, e.endsAt < nowIso))}
                   >
-                    <span className="num block">{formatTime(e.startsAt, timeZone)}</span>
+                    <span className="num flex items-center justify-between gap-1">
+                      {formatTime(e.startsAt, timeZone)}
+                      {e.kind && (
+                        <span className="font-sans font-semibold" title={e.kind === 'theory' ? 'Теория' : 'Практика'}>
+                          {KIND_TAG[e.kind]}
+                        </span>
+                      )}
+                    </span>
                     {e.caption && <span className="block truncate font-medium">{e.caption}</span>}
                     <span className="block truncate">{e.title}</span>
                   </Link>
@@ -152,6 +170,19 @@ export function MonthCalendar({ events, timeZone }: MonthCalendarProps) {
           )
         })}
       </div>
+
+      {events.some((e) => e.kind) && (
+        <ul className="flex flex-wrap gap-x-5 gap-y-1 border-t border-line px-4 py-2.5 text-sm text-muted sm:px-5">
+          <li className="flex items-center gap-2">
+            <span aria-hidden className="size-3.5 rounded-[4px] bg-pen-soft outline-1 outline-pen" />
+            Теория
+          </li>
+          <li className="flex items-center gap-2">
+            <span aria-hidden className="size-3.5 rounded-[4px] bg-prac-soft outline-1 outline-prac" />
+            Практика
+          </li>
+        </ul>
+      )}
 
       <div className="border-t border-line px-4 py-3 sm:px-5">
         <h3 className="text-sm font-medium first-letter:uppercase">{formatDayKey(selected, true)}</h3>
@@ -168,6 +199,16 @@ export function MonthCalendar({ events, timeZone }: MonthCalendarProps) {
                   <span className="num w-24 shrink-0 text-sm text-muted">
                     {formatTime(e.startsAt, timeZone)}–{formatTime(e.endsAt, timeZone)}
                   </span>
+                  {e.kind && (
+                    <span
+                      className={cn(
+                        'shrink-0 rounded-full px-2 py-0.5 text-xs font-medium',
+                        e.kind === 'practice' ? 'bg-prac-soft text-prac' : 'bg-pen-soft text-pen',
+                      )}
+                    >
+                      {e.kind === 'theory' ? 'Теория' : 'Практика'}
+                    </span>
+                  )}
                   <span className={cn('min-w-0 flex-1', e.cancelled && 'text-muted line-through')}>
                     {e.caption && <span className="font-medium">{e.caption}: </span>}
                     {e.title}

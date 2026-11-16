@@ -3,7 +3,7 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { formatDay, formatTime, relativeDay, zoneLabel } from '../../core/time'
 import { sortHomework, topicLabel } from '../../domain/homework'
-import { lessonTitle, nextSession } from '../../domain/lessons'
+import { lessonKind, lessonTitle, nextSession } from '../../domain/lessons'
 import { buttonClass } from '../../ui/Button'
 import { MonthCalendar, type CalendarEvent } from '../../ui/MonthCalendar'
 import { ErrorState, Panel, Skeleton } from '../../ui/bits'
@@ -23,6 +23,7 @@ export function StudentHomePage() {
         startsAt: s.startsAt,
         endsAt: s.endsAt,
         title: lessonTitle(lessons.data, s.lessonId),
+        kind: lessonKind(lessons.data, s.lessonId),
         to: `/lessons/${s.id}`,
         cancelled: s.status === 'cancelled',
       })),

@@ -5,9 +5,17 @@ import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useSession } from '../../core/auth/session'
 import { pickFiles, removeStored } from '../../domain/files'
-import { addLessonFiles, EGE_TASK_COUNT, removeLessonFile, saveLesson, type LessonInput } from '../../domain/lessons'
+import {
+  addLessonFiles,
+  autoLessonTitle,
+  EGE_TASK_COUNT,
+  KIND_LABEL,
+  removeLessonFile,
+  saveLesson,
+  type LessonInput,
+} from '../../domain/lessons'
 import { ValidationError } from '../../domain/students'
-import type { FileMeta, Lesson } from '../../domain/types'
+import type { FileMeta, Lesson, LessonKind } from '../../domain/types'
 import { Button, IconButton } from '../../ui/Button'
 import { Dialog, DialogActions } from '../../ui/Dialog'
 import { inputBase, inputClass, SelectField, TextAreaField, TextField } from '../../ui/Field'
@@ -34,8 +42,16 @@ export function LessonFormDialog({
     topic: lesson?.topic ?? '',
     description: lesson?.description ?? '',
     egeTask: lesson?.egeTask ?? null,
+    kind: lesson?.kind ?? null,
     links: lesson?.links.length ? lesson.links : [],
   }))
+  // Пока название не меняли руками, оно собирается из номера и типа: «№ 16. Теория».
+  const [titleTouched, setTitleTouched] = useState(!!lesson)
+  const setNumberOrKind = (patch: { egeTask?: number | null; kind?: LessonKind | null }) =>
+    setForm((f) => {
+      const next = { ...f, ...patch }
+      return titleTouched ? next : { ...next, title: autoLessonTitle(next.egeTask, next.kind) }
+    })
   const [fieldError, setFieldError] = useState<{ field: string; message: string } | null>(null)
   const err = (field: string) => (fieldError?.field === field ? fieldError.message : null)
   const queryClient = useQueryClient()
@@ -94,25 +110,13 @@ export function LessonFormDialog({
       wide
     >
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
-        <TextField
-          label="Название"
-          value={form.title}
-          onChange={(title) => setForm((f) => ({ ...f, title }))}
-          error={err('title')}
-          autoFocus
-        />
-        <div className="grid gap-4 sm:grid-cols-[1fr_12rem]">
-          <TextField
-            label="Тема"
-            value={form.topic}
-            onChange={(topic) => setForm((f) => ({ ...f, topic }))}
-            hint="Например: рекурсия. По теме строится статистика"
-          />
+        <div className="grid gap-4 sm:grid-cols-2">
           <SelectField
             label="Задание ЕГЭ"
             value={form.egeTask === null ? '' : String(form.egeTask)}
-            onChange={(v) => setForm((f) => ({ ...f, egeTask: v ? Number(v) : null }))}
+            onChange={(v) => setNumberOrKind({ egeTask: v ? Number(v) : null })}
             error={err('egeTask')}
+            autoFocus
           >
             <option value="">Не привязано</option>
             {Array.from({ length: EGE_TASK_COUNT }, (_, i) => i + 1).map((n) => (
@@ -121,6 +125,34 @@ export function LessonFormDialog({
               </option>
             ))}
           </SelectField>
+          <SelectField
+            label="Тип урока"
+            value={form.kind ?? ''}
+            onChange={(v) => setNumberOrKind({ kind: (v || null) as LessonKind | null })}
+            hint="В календаре теория и практика разного цвета"
+          >
+            <option value="">Другое</option>
+            <option value="theory">{KIND_LABEL.theory}</option>
+            <option value="practice">{KIND_LABEL.practice}</option>
+          </SelectField>
+        </div>
+        <TextField
+          label="Название"
+          value={form.title}
+          onChange={(title) => {
+            setTitleTouched(title.trim() !== '')
+            setForm((f) => ({ ...f, title }))
+          }}
+          error={err('title')}
+          hint={titleTouched ? undefined : 'Подставляется из номера и типа. Можно написать своё'}
+        />
+        <div className="grid gap-4">
+          <TextField
+            label="Тема"
+            value={form.topic}
+            onChange={(topic) => setForm((f) => ({ ...f, topic }))}
+            hint="Например: рекурсия. По теме строится статистика"
+          />
         </div>
         <TextAreaField
           label="Описание"
@@ -280,7 +312,19 @@ export function LessonsPage() {
                         className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-3 hover:bg-sunken sm:px-5"
                       >
                         <div className="min-w-0 flex-1 basis-64">
-                          <p className="truncate font-medium">{lesson.title}</p>
+                          <p className="flex items-center gap-2 font-medium">
+                            <span className="truncate">{lesson.title}</span>
+                            {lesson.kind && (
+                              <span
+                                className={cn(
+                                  'shrink-0 rounded-full px-2 py-0.5 text-xs',
+                                  lesson.kind === 'practice' ? 'bg-prac-soft text-prac' : 'bg-pen-soft text-pen',
+                                )}
+                              >
+                                {KIND_LABEL[lesson.kind]}
+                              </span>
+                            )}
+                          </p>
                           <p className="truncate text-sm text-muted">{lesson.topic || 'Тема не указана'}</p>
                         </div>
                         <p className="w-28 text-sm text-muted">

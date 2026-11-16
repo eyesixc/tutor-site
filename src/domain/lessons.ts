@@ -10,6 +10,7 @@ import {
   paths,
   type KeysFile,
   type Lesson,
+  type LessonKind,
   type LessonLink,
   type LessonSession,
   type LessonsFile,
@@ -25,7 +26,16 @@ export interface LessonInput {
   topic: string
   description: string
   egeTask: number | null
+  kind: LessonKind | null
   links: LessonLink[]
+}
+
+export const KIND_LABEL: Record<LessonKind, string> = { theory: 'Теория', practice: 'Практика' }
+
+/** Название по привычной схеме: «№ 16. Теория». Пустая строка, если тип не выбран. */
+export function autoLessonTitle(egeTask: number | null, kind: LessonKind | null): string {
+  if (!kind) return ''
+  return egeTask ? `№ ${egeTask}. ${KIND_LABEL[kind]}` : KIND_LABEL[kind]
 }
 
 function requireAdmin(session: Session): void {
@@ -52,7 +62,8 @@ export function validateLessonInput(input: LessonInput): LessonInput {
     if (!/^https?:\/\/\S+$/.test(link.url)) throw new ValidationError('links', 'Ссылка должна начинаться с https://')
     if (!link.title) link.title = link.url
   }
-  return { title, topic: input.topic.trim(), description: input.description.trim(), egeTask: input.egeTask, links }
+  const kind = input.kind === 'theory' || input.kind === 'practice' ? input.kind : null
+  return { title, topic: input.topic.trim(), description: input.description.trim(), egeTask: input.egeTask, kind, links }
 }
 
 /** Общая библиотека уроков: доступна и репетитору, и ученикам. */
@@ -261,6 +272,10 @@ export function nextSession(sessions: LessonSession[], now: Date = new Date()): 
 
 export function findLesson(lessons: Lesson[] | undefined, lessonId: string): Lesson | null {
   return lessons?.find((l) => l.id === lessonId) ?? null
+}
+
+export function lessonKind(lessons: Lesson[] | undefined, lessonId: string): LessonKind | null {
+  return findLesson(lessons, lessonId)?.kind ?? null
 }
 
 export function lessonTitle(lessons: Lesson[] | undefined, lessonId: string): string {

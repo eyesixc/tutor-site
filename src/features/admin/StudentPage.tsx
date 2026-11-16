@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { TUTOR_TIMEZONE, zoneLabel } from '../../core/time'
 import { exportHomeworkCsv, exportMocksCsv, exportStudentJson, saveTextFile } from '../../domain/export'
 import { sortHomework, viewHomework } from '../../domain/homework'
-import { lessonTitle, sortByStart } from '../../domain/lessons'
+import { lessonKind, lessonTitle, sortByStart } from '../../domain/lessons'
 import { Button, buttonClass } from '../../ui/Button'
 import { MonthCalendar, type CalendarEvent } from '../../ui/MonthCalendar'
 import { ErrorState, PageHeader, Panel, Skeleton } from '../../ui/bits'
@@ -43,6 +43,7 @@ export function StudentPage() {
       startsAt: s.startsAt,
       endsAt: s.endsAt,
       title: lessonTitle(lessons.data, s.lessonId),
+      kind: lessonKind(lessons.data, s.lessonId),
       to: `/admin/lessons/${s.lessonId}`,
       cancelled: s.status === 'cancelled',
     }))

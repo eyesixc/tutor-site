@@ -2,7 +2,7 @@ import { ArrowSquareOut } from '@phosphor-icons/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSession } from '../../core/auth/session'
 import { pickFiles } from '../../domain/files'
-import { addLessonFiles, removeLessonFile } from '../../domain/lessons'
+import { addLessonFiles, KIND_LABEL, removeLessonFile } from '../../domain/lessons'
 import type { Lesson } from '../../domain/types'
 import { Panel } from '../../ui/bits'
 import { FileList, Uploader, useSharedFiles } from './filesUi'
@@ -99,6 +99,7 @@ export function LessonContent({ lesson, viewBase, manage }: LessonContentProps) 
 export function LessonMeta({ lesson }: { lesson: Lesson }) {
   return (
     <>
+      {lesson.kind ? `${KIND_LABEL[lesson.kind]}. ` : ''}
       {lesson.topic ? `Тема: ${lesson.topic}` : 'Тема не указана'}
       {lesson.egeTask && (
         <>

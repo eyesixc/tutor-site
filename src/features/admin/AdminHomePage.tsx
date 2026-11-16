@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { dayKey, formatDayKey, formatTimeRange, relativeDay, todayKey, TUTOR_TIMEZONE } from '../../core/time'
 import { STATUS_LABEL, viewHomework } from '../../domain/homework'
-import { lessonTitle, nextSession } from '../../domain/lessons'
+import { lessonKind, lessonTitle, nextSession } from '../../domain/lessons'
 import { buttonClass } from '../../ui/Button'
 import { MonthCalendar, type CalendarEvent } from '../../ui/MonthCalendar'
 import { EmptyState, ErrorState, PageHeader, Panel, Skeleton } from '../../ui/bits'
@@ -48,6 +48,7 @@ export function AdminHomePage() {
         startsAt: s.startsAt,
         endsAt: s.endsAt,
         title: lessonTitle(lessons.data, s.lessonId),
+        kind: lessonKind(lessons.data, s.lessonId),
         caption: student.name.split(/\s+/)[0],
         to: `/admin/lessons/${s.lessonId}`,
         cancelled: s.status === 'cancelled',
