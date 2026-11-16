@@ -8,7 +8,7 @@ import {
   type Bytes,
 } from '../core/crypto'
 import { diskInfo } from '../core/disk'
-import { createStore, isLocalRepo, jsonFile } from '../core/storage'
+import { createStore, isLocalRepo, jsonFile, StorageError } from '../core/storage'
 import { canWriteToRepo, checkRepoAccess } from '../core/storage/github'
 import { paths, type AdminSettings, type KeysFile, type StudentsIndex } from './types'
 import { ValidationError } from './students'
@@ -68,23 +68,36 @@ export async function runSetup(raw: SetupInput, onStep: (text: string) => void):
       throw new ValidationError('studentToken', 'Токен учеников должен быть отдельным: без доступа к сайту')
     }
 
+    // Ошибку 401 привязываем к конкретному полю: иначе непонятно, какой из токенов вставлен неверно.
+    const invalid = ' GitHub не принимает этот токен. Проверьте, что строка github_pat_… вставлена целиком и что токен не был пересоздан (Regenerate) после копирования.'
+    const using = async <T>(field: 'adminToken' | 'studentToken', label: string, run: () => Promise<T>): Promise<T> => {
+      try {
+        return await run()
+      } catch (error) {
+        if (error instanceof StorageError && error.status === 401) throw new ValidationError(field, label + invalid)
+        throw error
+      }
+    }
+    const admin = <T>(run: () => Promise<T>) => using('adminToken', 'Токен репетитора:', run)
+    const student = <T>(run: () => Promise<T>) => using('studentToken', 'Токен учеников:', run)
+
     onStep('Проверяю доступ к репозиториям')
-    const data = await checkRepoAccess(input.dataRepo, input.adminToken)
+    const data = await admin(() => checkRepoAccess(input.dataRepo, input.adminToken))
     if (!data.isPrivate) throw new ValidationError('dataRepo', 'Репозиторий данных должен быть приватным')
-    await checkRepoAccess(input.siteRepo, input.adminToken)
+    await admin(() => checkRepoAccess(input.siteRepo, input.adminToken))
 
     onStep('Проверяю права токенов')
     const hint = ' Откройте токен на GitHub, нажмите Edit и поставьте Contents: Read and write.'
-    if (!(await canWriteToRepo(input.dataRepo, input.adminToken))) {
+    if (!(await admin(() => canWriteToRepo(input.dataRepo, input.adminToken)))) {
       throw new ValidationError('adminToken', 'Токен репетитора не может писать в репозиторий данных.' + hint)
     }
-    if (!(await canWriteToRepo(input.siteRepo, input.adminToken))) {
+    if (!(await admin(() => canWriteToRepo(input.siteRepo, input.adminToken)))) {
       throw new ValidationError('adminToken', 'Токен репетитора не может писать в репозиторий сайта.' + hint)
     }
-    if (!(await canWriteToRepo(input.dataRepo, input.studentToken))) {
+    if (!(await student(() => canWriteToRepo(input.dataRepo, input.studentToken)))) {
       throw new ValidationError('studentToken', 'Токен учеников не может писать в репозиторий данных.' + hint)
     }
-    if (await canWriteToRepo(input.siteRepo, input.studentToken)) {
+    if (await student(() => canWriteToRepo(input.siteRepo, input.studentToken))) {
       throw new ValidationError(
         'studentToken',
         'Токен учеников может писать в репозиторий сайта. Оставьте ему доступ только к репозиторию данных.',
