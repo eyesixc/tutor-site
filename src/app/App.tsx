@@ -1,8 +1,10 @@
-import { BookOpen, GearSix, House, Users } from '@phosphor-icons/react'
+import { BookOpen, ClipboardText, GearSix, House, Users } from '@phosphor-icons/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom'
 import { SessionProvider, useAuth } from '../core/auth/session'
 import { AdminHomePage } from '../features/admin/AdminHomePage'
+import { AdminHomeworkDetailPage } from '../features/admin/HomeworkDetailPage'
+import { AdminHomeworkPage } from '../features/admin/HomeworkPage'
 import { LessonPage } from '../features/admin/LessonPage'
 import { LessonsPage } from '../features/admin/LessonsPage'
 import { SettingsPage } from '../features/admin/SettingsPage'
@@ -10,7 +12,10 @@ import { StudentPage } from '../features/admin/StudentPage'
 import { StudentsPage } from '../features/admin/StudentsPage'
 import { homePath, LoginPage } from '../features/auth/LoginPage'
 import { SetupPage } from '../features/auth/SetupPage'
-import { StudentHomePage, useOwnData } from '../features/student/HomePage'
+import { useOwnData } from '../features/student/data'
+import { StudentHomePage } from '../features/student/HomePage'
+import { StudentHomeworkCardPage } from '../features/student/HomeworkCardPage'
+import { StudentHomeworkPage } from '../features/student/HomeworkPage'
 import { StudentLessonPage } from '../features/student/LessonPage'
 import { StudentLessonsPage } from '../features/student/LessonsPage'
 import { AppShell, type NavItem } from '../ui/AppShell'
@@ -26,12 +31,14 @@ const ADMIN_NAV: NavItem[] = [
   { to: '/admin', label: 'Главная', icon: House, end: true },
   { to: '/admin/students', label: 'Ученики', icon: Users },
   { to: '/admin/lessons', label: 'Уроки', icon: BookOpen },
+  { to: '/admin/homework', label: 'Домашние задания', icon: ClipboardText },
   { to: '/admin/settings', label: 'Настройки', icon: GearSix },
 ]
 
 const STUDENT_NAV: NavItem[] = [
   { to: '/', label: 'Главная', icon: House, end: true },
   { to: '/lessons', label: 'Уроки', icon: BookOpen },
+  { to: '/homework', label: 'Домашние задания', icon: ClipboardText },
 ]
 
 /** Пускает только свою роль. Чужую отправляет на её главную, гостя — на вход. */
@@ -94,6 +101,8 @@ export default function App() {
                   <Route path="students/:studentId" element={<StudentPage />} />
                   <Route path="lessons" element={<LessonsPage />} />
                   <Route path="lessons/:lessonId" element={<LessonPage />} />
+                  <Route path="homework" element={<AdminHomeworkPage />} />
+                  <Route path="homework/:studentId/:homeworkId" element={<AdminHomeworkDetailPage />} />
                   <Route path="settings" element={<SettingsPage />} />
                 </Route>
               </Route>
@@ -103,6 +112,8 @@ export default function App() {
                   <Route path="/" element={<StudentHomePage />} />
                   <Route path="/lessons" element={<StudentLessonsPage />} />
                   <Route path="/lessons/:sessionId" element={<StudentLessonPage />} />
+                  <Route path="/homework" element={<StudentHomeworkPage />} />
+                  <Route path="/homework/:homeworkId" element={<StudentHomeworkCardPage />} />
                 </Route>
               </Route>
 

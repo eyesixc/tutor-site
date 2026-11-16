@@ -7,7 +7,7 @@ import { inputClass } from '../../ui/Field'
 import { Badge, EmptyState, ErrorState, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
 import { useLessons } from '../shared/data'
-import { useOwnData } from './HomePage'
+import { useOwnData } from './data'
 
 export function StudentLessonsPage() {
   const own = useOwnData()

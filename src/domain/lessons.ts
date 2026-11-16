@@ -3,6 +3,7 @@ import { fromB64, newId } from '../core/crypto'
 import { jsonFile } from '../core/storage'
 import { listStudents, ValidationError } from './students'
 import {
+  emptyStudentFile,
   emptyTutorFile,
   paths,
   type KeysFile,
@@ -10,6 +11,7 @@ import {
   type LessonLink,
   type LessonSession,
   type LessonsFile,
+  type StudentFile,
   type StudentRecord,
   type TutorFile,
 } from './types'
@@ -85,6 +87,8 @@ export async function saveLesson(session: Session, raw: LessonInput, id?: string
 export interface Overview {
   students: StudentRecord[]
   files: Record<string, TutorFile>
+  /** То, что пишут сами ученики: отметки о выполнении и решения. */
+  subs: Record<string, StudentFile>
 }
 
 export async function loadOverview(session: Session): Promise<Overview> {
@@ -97,12 +101,20 @@ export async function loadOverview(session: Session): Promise<Overview> {
     students.map(async (student) => {
       const key = keys?.value.keys[student.id]
       if (!key) throw new Error(`Не найден ключ ученика ${student.name}`)
-      const file = await jsonFile<TutorFile>(session.data, paths.tutorFile(student.id), fromB64(key)).load()
+      const raw = fromB64(key)
+      const [file, sub] = await Promise.all([
+        jsonFile<TutorFile>(session.data, paths.tutorFile(student.id), raw).load(),
+        jsonFile<StudentFile>(session.data, paths.studentFile(student.id), raw).load(),
+      ])
       const profile = { name: student.name, timezone: student.timezone, telemostUrl: student.telemostUrl }
-      return [student.id, file?.value ?? emptyTutorFile(profile)] as const
+      return [student.id, file?.value ?? emptyTutorFile(profile), sub?.value ?? emptyStudentFile()] as const
     }),
   )
-  return { students, files: Object.fromEntries(entries) }
+  return {
+    students,
+    files: Object.fromEntries(entries.map(([id, file]) => [id, file])),
+    subs: Object.fromEntries(entries.map(([id, , sub]) => [id, sub])),
+  }
 }
 
 async function tutorFileOf(session: Session, studentId: string) {

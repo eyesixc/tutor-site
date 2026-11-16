@@ -1,18 +1,21 @@
 import { CaretLeft, VideoCamera } from '@phosphor-icons/react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { formatDay, formatTimeRange } from '../../core/time'
+import { formatDay, formatTime, formatTimeRange } from '../../core/time'
+import { topicLabel } from '../../domain/homework'
 import { findLesson } from '../../domain/lessons'
 import { buttonClass } from '../../ui/Button'
 import { Badge, ErrorState, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { LessonContent, LessonMeta } from '../shared/LessonContent'
 import { useLessons } from '../shared/data'
-import { useOwnData } from './HomePage'
+import { StatusBadge } from '../shared/homeworkUi'
+import { useOwnData, useOwnHomework } from './data'
 
 export function StudentLessonPage() {
   const { sessionId = '' } = useParams()
   const navigate = useNavigate()
   const own = useOwnData()
   const lessons = useLessons()
+  const homework = useOwnHomework()
 
   if (own.isPending || lessons.isPending) {
     return (
@@ -34,6 +37,7 @@ export function StudentLessonPage() {
   const tz = profile.timezone
   const cancelled = session.status === 'cancelled'
   const finished = session.endsAt < new Date().toISOString()
+  const related = (homework?.views ?? []).filter((v) => v.hw.lessonId === session.lessonId)
 
   return (
     <>
@@ -69,8 +73,34 @@ export function StudentLessonPage() {
       />
 
       {lesson ? (
-        <div className="max-w-3xl">
+        <div className="flex max-w-3xl flex-col gap-6">
           <LessonContent lesson={lesson} />
+          {related.length > 0 && (
+            <Panel className="overflow-hidden">
+              <h2 className="px-5 pt-5 pb-3 text-lg">Домашнее задание к уроку</h2>
+              <ul>
+                {related.map(({ hw, status }) => (
+                  <li key={hw.id} className="border-t border-line">
+                    <Link
+                      to={`/homework/${hw.id}`}
+                      className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 px-5 py-3 hover:bg-sunken"
+                    >
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{hw.title}</span>
+                        <span className="block text-sm text-muted">
+                          {topicLabel(hw)}. Заданий: {hw.taskCount}. Сдать до{' '}
+                          <span className="num text-ink">
+                            {formatDay(hw.deadline, tz)}, {formatTime(hw.deadline, tz)}
+                          </span>
+                        </span>
+                      </span>
+                      <StatusBadge status={status} />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Panel>
+          )}
         </div>
       ) : (
         <Panel className="p-5 text-muted">Материалы этого урока больше недоступны.</Panel>

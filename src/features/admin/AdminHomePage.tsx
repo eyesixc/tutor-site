@@ -2,6 +2,7 @@ import { ArrowSquareOut, Plus } from '@phosphor-icons/react'
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { dayKey, formatDayKey, formatTimeRange, relativeDay, todayKey, TUTOR_TIMEZONE } from '../../core/time'
+import { STATUS_LABEL, viewHomework } from '../../domain/homework'
 import { lessonTitle, nextSession } from '../../domain/lessons'
 import { buttonClass } from '../../ui/Button'
 import { MonthCalendar, type CalendarEvent } from '../../ui/MonthCalendar'
@@ -19,10 +20,19 @@ export function AdminHomePage() {
 
   const rows = useMemo(() => {
     if (!overview.data) return []
-    const list = overview.data.students.map((student) => ({
-      student,
-      next: nextSession(overview.data.files[student.id].sessions),
-    }))
+    const list = overview.data.students.map((student) => {
+      const file = overview.data.files[student.id]
+      const views = viewHomework(file.homework, overview.data.subs[student.id].submissions)
+      const next = nextSession(file.sessions)
+      return {
+        student,
+        next,
+        debts: views.filter((v) => v.status === 'debt').length,
+        waiting: views.filter((v) => v.status === 'done').length,
+        // Домашка к ближайшему уроку: та, что привязана к этому уроку.
+        forNext: next ? views.filter((v) => v.hw.lessonId === next.lessonId) : [],
+      }
+    })
     return list.sort((a, b) => {
       if (sort === 'name') return a.student.name.localeCompare(b.student.name, 'ru')
       // Ученики без назначенных занятий уходят в конец.
@@ -107,14 +117,30 @@ export function AdminHomePage() {
             </div>
           ) : (
             <ul>
-              {rows.map(({ student, next }) => (
+              {rows.map(({ student, next, debts, waiting, forNext }) => (
                 <li
                   key={student.id}
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-t border-line px-4 py-3 sm:px-5 md:grid-cols-[minmax(0,1.1fr)_10rem_minmax(0,1.3fr)_auto]"
                 >
-                  <Link to={`/admin/students/${student.id}`} className="min-w-0 truncate font-medium hover:underline">
-                    {student.name}
-                  </Link>
+                  <div className="min-w-0">
+                    <Link to={`/admin/students/${student.id}`} className="block truncate font-medium hover:underline">
+                      {student.name}
+                    </Link>
+                    <p className="text-sm">
+                      {debts > 0 ? (
+                        <span className="font-medium text-red">
+                          Долгов: <span className="num">{debts}</span>
+                        </span>
+                      ) : (
+                        <span className="text-muted">Долгов нет</span>
+                      )}
+                      {waiting > 0 && (
+                        <Link to="/admin/homework" className="ml-3 text-pen underline">
+                          Ждёт проверки: <span className="num">{waiting}</span>
+                        </Link>
+                      )}
+                    </p>
+                  </div>
                   {next ? (
                     <>
                       <div className="col-start-1 md:col-start-auto">
@@ -128,12 +154,16 @@ export function AdminHomePage() {
                         </p>
                         <p className="num text-sm text-muted">{formatTimeRange(next.startsAt, next.endsAt, TUTOR_TIMEZONE)}</p>
                       </div>
-                      <Link
-                        to={`/admin/lessons/${next.lessonId}`}
-                        className="col-start-1 min-w-0 truncate text-sm hover:underline md:col-start-auto"
-                      >
-                        {lessonTitle(lessons.data, next.lessonId)}
-                      </Link>
+                      <div className="col-start-1 min-w-0 text-sm md:col-start-auto">
+                        <Link to={`/admin/lessons/${next.lessonId}`} className="block truncate hover:underline">
+                          {lessonTitle(lessons.data, next.lessonId)}
+                        </Link>
+                        <p className="truncate text-muted">
+                          {forNext.length === 0
+                            ? 'Домашка к уроку не задана'
+                            : `Домашка: ${forNext.map((v) => STATUS_LABEL[v.status].toLowerCase()).join(', ')}`}
+                        </p>
+                      </div>
                     </>
                   ) : (
                     <p className="col-start-1 text-sm text-muted md:col-span-2 md:col-start-auto">Занятий не назначено</p>
