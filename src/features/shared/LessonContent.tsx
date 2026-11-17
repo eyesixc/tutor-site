@@ -39,9 +39,16 @@ export function LessonContent({ lesson, viewBase, manage }: LessonContentProps) 
         )}
       </div>
 
+      {lesson.links.length > 0 && (
+        <div className="border-t border-line p-5">
+          <h3 className="text-sm font-normal text-muted">Тетради и ссылки</h3>
+          <LinkTiles links={lesson.links} feature="workbook" className="mt-3" />
+        </div>
+      )}
+
       {(files.length > 0 || manage) && (
         <div className="border-t border-line">
-          <h3 className="px-5 pt-4 pb-2 text-sm font-normal text-muted">Материалы урока</h3>
+          <h3 className="px-5 pt-4 pb-2 text-sm font-normal text-muted">Файлы урока</h3>
           {files.length > 0 ? (
             <FileList
               files={files}
@@ -81,12 +88,6 @@ export function LessonContent({ lesson, viewBase, manage }: LessonContentProps) 
         </div>
       )}
 
-      {lesson.links.length > 0 && (
-        <div className="border-t border-line p-5">
-          <h3 className="text-sm font-normal text-muted">Ссылки</h3>
-          <LinkTiles links={lesson.links} className="mt-3" />
-        </div>
-      )}
     </Panel>
   )
 }

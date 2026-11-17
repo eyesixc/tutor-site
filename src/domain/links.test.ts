@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { describeLink, isHomeworkTitle } from './links'
+import { describeLink, isHomeworkTitle, linkRole, orderLessonLinks } from './links'
 
 describe('распознавание ссылок', () => {
   it('Яндекс Диск — документ, а по названию — домашка или таблица', () => {
@@ -31,5 +31,25 @@ describe('распознавание ссылок', () => {
     expect(isHomeworkTitle('ДЗ к уроку')).toBe(true)
     expect(isHomeworkTitle('Домашнее задание')).toBe(true)
     expect(isHomeworkTitle('Подзадачи')).toBe(false)
+  })
+})
+
+describe('порядок ссылок урока', () => {
+  it('роли по названию', () => {
+    expect(linkRole('Рабочая тетрадь')).toBe('workbook')
+    expect(linkRole('Практика')).toBe('workbook')
+    expect(linkRole('Тетрадь с теорией')).toBe('theory')
+    expect(linkRole('Домашка')).toBe('homework')
+    expect(linkRole('Видео')).toBe('other')
+  })
+
+  it('рабочая тетрадь первой, затем теория и домашка', () => {
+    const links = [
+      { title: 'Домашка', url: 'a' },
+      { title: 'Видео', url: 'b' },
+      { title: 'Тетрадь с теорией', url: 'c' },
+      { title: 'Рабочая тетрадь', url: 'd' },
+    ]
+    expect(orderLessonLinks(links).map((l) => l.url)).toEqual(['d', 'c', 'a', 'b'])
   })
 })

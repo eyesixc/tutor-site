@@ -1,5 +1,6 @@
 import {
   ArrowUpRight,
+  BookOpenText,
   ChatCircleText,
   Code,
   FileText,
@@ -10,7 +11,7 @@ import {
   Target,
   type Icon,
 } from '@phosphor-icons/react'
-import { describeLink, type LinkKind } from '../domain/links'
+import { describeLink, linkRole, orderLessonLinks, type LinkKind } from '../domain/links'
 import { cn } from './cn'
 
 export const LINK_ICON: Record<LinkKind, Icon> = {
@@ -88,8 +89,11 @@ export function LinkTile({ title, url, className }: { title: string; url: string
           aria-hidden
           className={cn(
             'flex size-10 items-center justify-center rounded-control',
-            accent || info.kind === 'doc' || info.kind === 'table' || info.kind === 'video' ? 'bg-pen-soft text-pen' : 'bg-sunken text-ink',
-            accent && 'bg-pen text-pen-ink',
+            accent
+              ? 'bg-pen text-pen-ink'
+              : info.kind === 'doc' || info.kind === 'table' || info.kind === 'video'
+                ? 'bg-pen-soft text-pen'
+                : 'bg-sunken text-ink',
           )}
         >
           <Icon size={22} />
@@ -109,17 +113,71 @@ export function LinkTile({ title, url, className }: { title: string; url: string
   )
 }
 
+/** Главная плитка урока: рабочая тетрадь. Широкая и синяя, остальные ссылки под ней. */
+export function WorkbookTile({ url, title, className }: { url: string; title: string; className?: string }) {
+  const { caption } = describeLink(url, title)
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      className={cn(
+        'group flex flex-wrap items-center gap-x-4 gap-y-3 rounded-panel bg-pen p-4 text-pen-ink transition-[filter] duration-150 hover:brightness-110',
+        focusRing,
+        className,
+      )}
+    >
+      <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-control bg-pen-ink/15">
+        <BookOpenText size={26} />
+      </span>
+      <span className="min-w-0 flex-1 basis-40">
+        <span className="block text-sm opacity-80">Главное на уроке</span>
+        <span className="block text-lg leading-snug font-semibold break-words">{title}</span>
+        <span className="block text-sm opacity-80">{caption}</span>
+      </span>
+      <span className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-control bg-pen-ink px-3.5 text-sm font-semibold text-pen">
+        Открыть
+        <ArrowUpRight size={16} weight="bold" aria-hidden className="transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      </span>
+      <span className="sr-only">(откроется в новой вкладке)</span>
+    </a>
+  )
+}
+
 interface LinkTilesProps {
   links: { title: string; url: string }[]
-  /** Ссылку на домашку показать главной плиткой сверху. */
-  featureHomework?: boolean
+  /**
+   * Что показать главной плиткой сверху: домашку (в материалах)
+   * или рабочую тетрадь (в уроке, тогда остальные идут по порядку: теория, домашка, прочее).
+   */
+  feature?: 'homework' | 'workbook'
   className?: string
 }
 
-/** Ссылки плитками: домашка широкой плиткой, остальное сеткой. */
-export function LinkTiles({ links, featureHomework = true, className }: LinkTilesProps) {
-  const featured = featureHomework ? links.find((l) => describeLink(l.url, l.title).kind === 'homework') : undefined
-  const rest = links.filter((l) => l !== featured)
+/** Ссылки плитками: главная широкой плиткой, остальное сеткой. */
+export function LinkTiles({ links, feature = 'homework', className }: LinkTilesProps) {
+  const featured =
+    feature === 'workbook'
+      ? links.find((l) => linkRole(l.title) === 'workbook')
+      : links.find((l) => describeLink(l.url, l.title).kind === 'homework')
+  const others = links.filter((l) => l !== featured)
+  const rest = feature === 'workbook' ? orderLessonLinks(others) : others
+  if (feature === 'workbook') {
+    return (
+      <div className={cn('flex flex-col gap-3', className)}>
+        {featured && <WorkbookTile url={featured.url} title={featured.title} />}
+        {rest.length > 0 && (
+          <ul className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-3">
+            {rest.map((link) => (
+              <li key={link.url + link.title} className="min-w-0">
+                <LinkTile title={link.title} url={link.url} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    )
+  }
   return (
     <div className={cn('flex flex-col gap-3', className)}>
       {featured && <HomeworkTile url={featured.url} title={featured.title} />}

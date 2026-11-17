@@ -62,3 +62,23 @@ export function describeLink(url: string, title: string): LinkInfo {
   const caption = kind === 'homework' ? service : `${service} · ${KIND_CAPTION[kind]}`
   return { kind, service, caption }
 }
+
+/** Роль ссылки в уроке: по ней выбирается порядок плиток. */
+export type LinkRole = 'workbook' | 'theory' | 'homework' | 'other'
+
+export function linkRole(title: string): LinkRole {
+  if (isHomeworkTitle(title)) return 'homework'
+  if (/рабоч\S*\s+тетрад|^\s*практика\s*$/i.test(title)) return 'workbook'
+  if (/теори/i.test(title)) return 'theory'
+  return 'other'
+}
+
+const ROLE_ORDER: Record<LinkRole, number> = { workbook: 0, theory: 1, homework: 2, other: 3 }
+
+/** Ссылки урока по порядку: рабочая тетрадь, теория, домашка, остальное. Внутри роли порядок сохраняется. */
+export function orderLessonLinks<T extends { title: string }>(links: T[]): T[] {
+  return links
+    .map((link, i) => ({ link, i, r: ROLE_ORDER[linkRole(link.title)] }))
+    .sort((a, b) => a.r - b.r || a.i - b.i)
+    .map((x) => x.link)
+}
