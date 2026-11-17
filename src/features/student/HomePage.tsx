@@ -3,10 +3,11 @@ import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { formatDay, formatTime, relativeDay, zoneLabel } from '../../core/time'
 import { sortHomework, topicLabel } from '../../domain/homework'
-import { lessonKind, lessonTitle, nextSession } from '../../domain/lessons'
+import { findLesson, homeworkLinkOf, lessonKind, lessonTitle, nextSession } from '../../domain/lessons'
 import { buttonClass } from '../../ui/Button'
 import { MonthCalendar, type CalendarEvent } from '../../ui/MonthCalendar'
 import { ErrorState, Panel, Skeleton } from '../../ui/bits'
+import { LinkCard } from '../../ui/LinkCard'
 import { useLessons } from '../shared/data'
 import { StatusBadge } from '../shared/homeworkUi'
 import { useOwnData, useOwnHomework } from './data'
@@ -55,6 +56,7 @@ export function StudentHomePage() {
   )
   const latest = [...views].sort((a, b) => b.hw.issuedAt.localeCompare(a.hw.issuedAt))[0]
   const latestSession = latest?.hw.lessonId ? sessions.find((s) => s.lessonId === latest.hw.lessonId) : undefined
+  const latestLink = latest?.hw.lessonId ? homeworkLinkOf(findLesson(lessons.data, latest.hw.lessonId)) : null
   const when = (iso: string) => `${formatDay(iso, tz)}, ${formatTime(iso, tz)}`
 
   return (
@@ -134,6 +136,9 @@ export function StudentHomePage() {
             <p className="mt-1">
               Сдать до <span className="num">{when(latest.hw.deadline)}</span>
             </p>
+            {latestLink && (
+              <LinkCard className="mt-3 sm:max-w-sm" accent title="Открыть домашку" url={latestLink.url} />
+            )}
           </div>
           <div className="flex flex-col items-end gap-3">
             <StatusBadge status={latest.status} />

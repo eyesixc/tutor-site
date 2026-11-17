@@ -149,7 +149,7 @@ export interface UsefulFile {
   items: UsefulItem[]
 }
 
-/** Методичка: файлы по теме или номеру задания. Общая для всех учеников. */
+/** Методичка: файлы и ссылки по теме или номеру задания. Общая для всех учеников. */
 export interface MethodicalItem {
   id: string
   title: string
@@ -157,6 +157,8 @@ export interface MethodicalItem {
   egeTask: number | null
   topic: string
   fileIds: string[]
+  /** Внешние ссылки. У методичек, созданных до появления ссылок, поля нет. */
+  links?: MaterialLink[]
   createdAt: string
 }
 
@@ -204,6 +206,7 @@ export const paths = {
     useful: 'shared/useful.json',
     methodical: 'shared/methodical.json',
     examCatalog: 'shared/exam_catalog.json',
+    contacts: 'shared/contacts.json',
   },
 } as const
 

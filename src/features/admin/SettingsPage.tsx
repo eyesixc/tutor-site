@@ -1,12 +1,16 @@
 import { CheckCircle, XCircle } from '@phosphor-icons/react'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import type { ReactNode } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState, type ReactNode } from 'react'
+import { toast } from 'sonner'
+import { saveTelegram, telegramUrl } from '../../domain/contacts'
+import { ValidationError } from '../../domain/students'
+import { TextField } from '../../ui/Field'
+import { useContacts, useOverview } from '../shared/data'
 import { useSession } from '../../core/auth/session'
 import { diskInfo, formatBytes, runDiskCheck } from '../../core/disk'
 import { isLocalRepo } from '../../core/storage'
 import { getRateLimit } from '../../core/storage/github'
 import { listStudents } from '../../domain/students'
-import { useOverview } from '../shared/data'
 import { useSharedFiles } from '../shared/filesUi'
 import { Button } from '../../ui/Button'
 import { Badge, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
@@ -20,6 +24,58 @@ function Row({ title, status, children }: { title: string; status: ReactNode; ch
       </div>
       <div className="text-sm text-muted">{children}</div>
     </div>
+  )
+}
+
+/** Ник в Телеграме: ученики видят его в каждом задании и отправляют туда решения. */
+function TelegramRow() {
+  const session = useSession()
+  const queryClient = useQueryClient()
+  const contacts = useContacts()
+  const [draft, setDraft] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const value = draft ?? contacts.data?.telegram ?? ''
+  const save = useMutation({
+    mutationFn: () => saveTelegram(session, value),
+    onSuccess: async () => {
+      setDraft(null)
+      setError(null)
+      await queryClient.invalidateQueries({ queryKey: ['contacts'] })
+      toast.success('Контакт сохранён')
+    },
+    onError: (cause) => (cause instanceof ValidationError ? setError(cause.message) : toast.error(errorMessage(cause))),
+  })
+  const url = telegramUrl(contacts.data?.telegram ?? '')
+
+  return (
+    <Row
+      title="Телеграм для домашних заданий"
+      status={contacts.isPending ? <Skeleton className="h-6 w-20" /> : <Badge tone={url ? 'ok' : 'warn'}>{url ? 'указан' : 'не указан'}</Badge>}
+    >
+      <p>Ученики не загружают решения на сайт, а отправляют их вам в Телеграм. В каждом задании у них будет кнопка с этим адресом.</p>
+      <form
+        className="mt-3 flex flex-wrap items-start gap-2"
+        onSubmit={(e) => {
+          e.preventDefault()
+          save.mutate()
+        }}
+      >
+        <div className="w-full max-w-xs">
+          <TextField label="Ник в Телеграме" value={value} onChange={(v) => setDraft(v)} error={error} placeholder="@username" mono />
+        </div>
+        <Button type="submit" className="sm:mt-7" loading={save.isPending} disabled={draft === null}>
+          Сохранить
+        </Button>
+      </form>
+      {url && (
+        <p className="mt-2">
+          Проверить ссылку:{' '}
+          <a href={url} target="_blank" rel="noreferrer" className="text-pen underline">
+            {url}
+          </a>
+        </p>
+      )}
+    </Row>
   )
 }
 
@@ -57,6 +113,7 @@ export function SettingsPage() {
       <PageHeader title="Настройки" description="Состояние хранилищ и подключённых сервисов." />
 
       <Panel>
+        <TelegramRow />
         <Row
           title="Ученики"
           status={students.isPending ? <Skeleton className="h-6 w-16" /> : <Badge>{students.data?.length ?? 0} из 10</Badge>}

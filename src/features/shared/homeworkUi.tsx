@@ -1,3 +1,4 @@
+import { ArrowUpRight } from '@phosphor-icons/react'
 import { useState, type ReactNode } from 'react'
 import { monthTitle, yearMonthOf } from '../../core/time'
 import {
@@ -26,7 +27,17 @@ export function scoreText(score: number | null, maxScore: number | null): string
 }
 
 /** Линия результатов в процентах. Ось от 0 до 100, подписи у крайних точек. */
-export function TrendChart({ points }: { points: { label: string; percent: number }[] }) {
+export function TrendChart({
+  points,
+  unit = '%',
+  threshold,
+}: {
+  points: { label: string; percent: number }[]
+  /** Подпись значения: «%» для процентов, « б.» для тестовых баллов. */
+  unit?: string
+  /** Пунктирная линия порога, например минимального тестового балла. */
+  threshold?: { value: number; label: string }
+}) {
   if (points.length === 0) {
     return <p className="text-sm text-muted">График появится после первой проверенной работы с баллами.</p>
   }
@@ -43,8 +54,8 @@ export function TrendChart({ points }: { points: { label: string; percent: numbe
   const last = points[points.length - 1]
   const summary =
     points.length === 1
-      ? `Одна проверенная работа: ${last.percent}%`
-      : `Результат по ${points.length} работам: от ${points[0].percent}% к ${last.percent}%`
+      ? `Одна проверенная работа: ${last.percent}${unit}`
+      : `Результат по ${points.length} работам: от ${points[0].percent}${unit} к ${last.percent}${unit}`
   return (
     <figure className="m-0">
       <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={summary} className="block h-auto w-full">
@@ -56,12 +67,20 @@ export function TrendChart({ points }: { points: { label: string; percent: numbe
             </text>
           </g>
         ))}
+        {threshold && (
+          <g>
+            <line x1={left} x2={W} y1={y(threshold.value)} y2={y(threshold.value)} className="stroke-red" strokeDasharray="4 4" />
+            <text x={W - 2} y={y(threshold.value) - 4} textAnchor="end" className="fill-red text-[11px]">
+              {threshold.label}
+            </text>
+          </g>
+        )}
         {points.length > 1 && (
           <path d={path} fill="none" className="stroke-pen" strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round" />
         )}
         {points.map((p, i) => (
           <circle key={i} cx={x(i)} cy={y(p.percent)} r={i === points.length - 1 ? 4.5 : 3} className="fill-pen">
-            <title>{`${p.label}: ${p.percent}%`}</title>
+            <title>{`${p.label}: ${p.percent}${unit}`}</title>
           </circle>
         ))}
       </svg>
@@ -201,6 +220,18 @@ export function Facts({ items }: { items: [string, ReactNode][] }) {
   )
 }
 
+/** Короткая подпись адреса: сайт и, если путь длинный, многоточие. Полный адрес виден в подсказке. */
+function shortUrl(url: string): string {
+  try {
+    const u = new URL(url)
+    const host = u.hostname.replace(/^www\./, '')
+    const path = u.pathname.replace(/\/$/, '')
+    return path && path.length <= 18 ? host + path : path ? `${host}/…` : host
+  } catch {
+    return url
+  }
+}
+
 /** Текст с переносами строк, в котором адреса становятся ссылками. */
 export function Linkified({ text }: { text: string }) {
   const parts = text.split(/(https?:\/\/[^\s]+)/g)
@@ -208,8 +239,16 @@ export function Linkified({ text }: { text: string }) {
     <p className="max-w-[65ch] break-words whitespace-pre-line">
       {parts.map((part, i) =>
         /^https?:\/\//.test(part) ? (
-          <a key={i} href={part} target="_blank" rel="noreferrer" className="text-pen underline">
-            {part}
+          <a
+            key={i}
+            href={part}
+            target="_blank"
+            rel="noreferrer"
+            title={part}
+            className="mx-0.5 inline-flex max-w-full items-center gap-1 rounded-control bg-pen-soft px-1.5 align-baseline text-pen underline decoration-pen/30 underline-offset-2 transition-colors duration-150 hover:decoration-pen"
+          >
+            <span className="num truncate text-sm">{shortUrl(part)}</span>
+            <ArrowUpRight size={14} aria-hidden className="shrink-0" />
           </a>
         ) : (
           part

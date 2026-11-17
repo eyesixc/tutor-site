@@ -19,7 +19,7 @@ import {
   uncheckHomework,
   updateHomework,
 } from '../../domain/homework'
-import { findLesson } from '../../domain/lessons'
+import { findLesson, homeworkLinkOf } from '../../domain/lessons'
 import { ValidationError } from '../../domain/students'
 import type { Homework, Lesson } from '../../domain/types'
 import { Button } from '../../ui/Button'
@@ -27,6 +27,7 @@ import { ConfirmDialog, Dialog, DialogActions } from '../../ui/Dialog'
 import { inputBase, TextAreaField, TextField } from '../../ui/Field'
 import { ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
+import { LinkCard } from '../../ui/LinkCard'
 import { useLessons, useOverview, useRefresh } from '../shared/data'
 import { FileList, Uploader } from '../shared/filesUi'
 import { Facts, Linkified, scoreText, StatusBadge } from '../shared/homeworkUi'
@@ -284,6 +285,15 @@ export function AdminHomeworkDetailPage() {
         <div className="flex flex-col gap-6">
           <Panel className="p-5">
             <h2 className="text-lg">Инструкция</h2>
+            {homeworkLinkOf(lesson) && (
+              <LinkCard
+                className="mt-3"
+                accent
+                title="Домашка"
+                url={homeworkLinkOf(lesson)!.url}
+                note={lesson ? `Из урока «${lesson.title}»` : undefined}
+              />
+            )}
             {hw.instructions ? (
               <div className="mt-2">
                 <Linkified text={hw.instructions} />
@@ -322,14 +332,12 @@ export function AdminHomeworkDetailPage() {
             </div>
           </Panel>
 
-          <Panel className="overflow-hidden">
-            <h2 className="px-5 pt-5 pb-3 text-lg">Решение ученика</h2>
-            {solution.length > 0 ? (
+          {solution.length > 0 && (
+            <Panel className="overflow-hidden">
+              <h2 className="px-5 pt-5 pb-3 text-lg">Файлы, загруженные учеником раньше</h2>
               <FileList files={solution} viewBase={viewBase} fileKey={studentKey} />
-            ) : (
-              <p className="border-t border-line px-5 py-4 text-sm text-muted">Ученик пока не прикрепил файлы.</p>
-            )}
-          </Panel>
+            </Panel>
+          )}
 
           <Panel className="p-5">
             <h2 className="text-lg">Выполнение</h2>

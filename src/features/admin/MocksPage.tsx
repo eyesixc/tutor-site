@@ -13,7 +13,7 @@ import { inputBase, SelectField, TextAreaField, TextField } from '../../ui/Field
 import { EmptyState, ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
 import { useOverview, useRefresh } from '../shared/data'
-import { MockScore, TaskStrip } from '../shared/mocksUi'
+import { MockScore, SecondaryScore, TaskStrip } from '../shared/mocksUi'
 import { useCatalogs } from './CatalogPage'
 
 export function MockCreateDialog({
@@ -100,7 +100,6 @@ export function MockCreateDialog({
 }
 
 export function AdminMockRow({ mock, studentId, studentName }: { mock: MockExam; studentId: string; studentName?: string }) {
-  const totals = mockTotals(mock)
   return (
     <li className="border-b border-line last:border-b-0">
       <Link to={`/admin/mocks/${studentId}/${mock.id}`} className="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-3 hover:bg-sunken sm:px-5">
@@ -112,7 +111,9 @@ export function AdminMockRow({ mock, studentId, studentName }: { mock: MockExam;
         <div className="w-28">
           <MockScore mock={mock} />
         </div>
-        <p className="num w-14 text-right text-sm">{totals.percent === null ? '' : `${totals.percent}%`}</p>
+        <div className="w-20 text-right">
+          <SecondaryScore mock={mock} />
+        </div>
       </Link>
     </li>
   )
@@ -276,7 +277,13 @@ function MockEditor({ mock, studentId, studentName }: { mock: MockExam; studentI
               <p className="num text-2xl leading-tight">
                 {totals.score} <span className="text-muted">из {totals.max}</span>
               </p>
-              <p className="text-sm text-muted">{totals.percent === null ? 'баллы не выставлены' : `${totals.percent}% первичных баллов`}</p>
+              <p className="text-sm text-muted">
+                {totals.percent === null
+                  ? 'баллы не выставлены'
+                  : totals.secondary === null
+                    ? `${totals.percent}% первичных баллов`
+                    : `${totals.secondary} тестовых баллов`}
+              </p>
             </div>
             <Button icon={<Trash size={18} />} onClick={() => setDeleting(true)}>
               Удалить
@@ -304,6 +311,9 @@ function MockEditor({ mock, studentId, studentName }: { mock: MockExam; studentI
             <div className="flex gap-2">
               <Button size="sm" onClick={() => setTasks((l) => l.map((t) => ({ ...t, score: t.maxScore })))}>
                 Всем полный балл
+              </Button>
+              <Button size="sm" onClick={() => setTasks((l) => l.map((t) => ({ ...t, score: 0 })))}>
+                Всем 0
               </Button>
               <Button size="sm" onClick={() => setTasks((l) => l.map((t) => ({ ...t, score: null })))}>
                 Очистить

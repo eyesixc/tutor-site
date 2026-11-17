@@ -6,7 +6,7 @@ import { mocksStats, mockTotals, sortMocks, taskKind } from '../../domain/mocks'
 import { Button } from '../../ui/Button'
 import { EmptyState, ErrorState, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
-import { MockScore, MocksStatsPanel, TaskStrip } from '../shared/mocksUi'
+import { MockScore, MocksStatsPanel, SecondaryScore, TaskStrip } from '../shared/mocksUi'
 import { useOwnData } from './data'
 
 function Loading() {
@@ -57,6 +57,9 @@ export function StudentMocksPage() {
                         </span>
                         <span className="num w-11 text-right text-sm">{totals.percent === null ? '' : `${totals.percent}%`}</span>
                       </div>
+                      <div className="w-20 text-right">
+                        <SecondaryScore mock={mock} />
+                      </div>
                     </Link>
                   </li>
                 )
@@ -100,7 +103,9 @@ export function StudentMockPage() {
           graded ? (
             <div className="text-right">
               <MockScore mock={mock} large />
-              <p className="text-sm text-muted">{totals.percent}% первичных баллов</p>
+              <p className="text-sm text-muted">
+                {totals.secondary === null ? `${totals.percent}% первичных баллов` : `${totals.secondary} тестовых баллов`}
+              </p>
             </div>
           ) : (
             <span className="text-muted">Ещё не проверен</span>

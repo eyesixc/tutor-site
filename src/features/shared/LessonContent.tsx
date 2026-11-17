@@ -1,10 +1,10 @@
-import { ArrowSquareOut } from '@phosphor-icons/react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useSession } from '../../core/auth/session'
 import { pickFiles, renameSharedFiles } from '../../domain/files'
 import { addLessonFiles, KIND_LABEL, removeLessonFile } from '../../domain/lessons'
 import type { Lesson } from '../../domain/types'
 import { Panel } from '../../ui/bits'
+import { LinkList } from '../../ui/LinkCard'
 import { FileList, Uploader, useSharedFiles } from './filesUi'
 
 interface LessonContentProps {
@@ -84,20 +84,7 @@ export function LessonContent({ lesson, viewBase, manage }: LessonContentProps) 
       {lesson.links.length > 0 && (
         <div className="border-t border-line p-5">
           <h3 className="text-sm font-normal text-muted">Ссылки</h3>
-          <ul className="mt-2 flex flex-col gap-1">
-            {lesson.links.map((link) => (
-              <li key={link.url + link.title}>
-                <a
-                  href={link.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex min-h-9 items-center gap-1.5 text-pen underline"
-                >
-                  {link.title} <ArrowSquareOut size={16} aria-hidden />
-                </a>
-              </li>
-            ))}
-          </ul>
+          <LinkList links={lesson.links} className="mt-3" />
         </div>
       )}
     </Panel>

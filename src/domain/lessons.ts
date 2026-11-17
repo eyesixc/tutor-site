@@ -281,3 +281,8 @@ export function lessonKind(lessons: Lesson[] | undefined, lessonId: string): Les
 export function lessonTitle(lessons: Lesson[] | undefined, lessonId: string): string {
   return findLesson(lessons, lessonId)?.title ?? 'Урок удалён из библиотеки'
 }
+
+/** Ссылка на домашку из урока: та, в названии которой есть «домашка» или «ДЗ». */
+export function homeworkLinkOf(lesson: Lesson | null | undefined): LessonLink | null {
+  return lesson?.links.find((link) => /домаш|(^|[^а-яё])дз([^а-яё]|$)/i.test(link.title)) ?? null
+}

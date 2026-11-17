@@ -1,4 +1,4 @@
-import { ArrowSquareOut, MagnifyingGlass, PencilSimple, Plus, Trash, X } from '@phosphor-icons/react'
+import { MagnifyingGlass, PencilSimple, Plus, Trash, X } from '@phosphor-icons/react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { toast } from 'sonner'
@@ -22,6 +22,7 @@ import { ConfirmDialog, Dialog, DialogActions } from '../../ui/Dialog'
 import { inputBase, inputClass, SelectField, TextAreaField, TextField } from '../../ui/Field'
 import { EmptyState, ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
+import { LinkList } from '../../ui/LinkCard'
 import { FileViewInline } from './FileViewPage'
 import { FileList, Uploader, useSharedFiles } from './filesUi'
 
@@ -172,6 +173,46 @@ function useMaterialForm(initialFiles: FileMeta[], onClose: () => void, queryKey
 
 // ── Полезные материалы ──────────────────────────────────────────────────────
 
+/** Редактор внешних ссылок: название и адрес в одной строке. */
+function LinksFieldset({ links, onChange, error }: { links: MaterialLink[]; onChange(links: MaterialLink[]): void; error: string | null }) {
+  return (
+    <fieldset className="flex flex-col gap-2">
+      <legend className="mb-1.5 text-sm font-medium">Внешние ссылки</legend>
+      {links.map((link, i) => (
+        <div key={i} className="flex flex-wrap items-center gap-2">
+          <input
+            aria-label={`Ссылка ${i + 1}: название`}
+            placeholder="Название"
+            value={link.title}
+            onChange={(e) => onChange(links.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
+            className={cn(inputBase, 'min-w-0 flex-1 basis-40')}
+          />
+          <input
+            aria-label={`Ссылка ${i + 1}: адрес`}
+            placeholder="https://…"
+            value={link.url}
+            onChange={(e) => onChange(links.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
+            className={cn(inputBase, 'num min-w-0 flex-[2] basis-56 text-sm')}
+          />
+          <IconButton label={`Убрать ссылку ${i + 1}`} onClick={() => onChange(links.filter((_, j) => j !== i))}>
+            <X size={18} />
+          </IconButton>
+        </div>
+      ))}
+      {error && (
+        <p role="alert" className="text-sm text-red">
+          {error}
+        </p>
+      )}
+      <div>
+        <Button size="sm" icon={<Plus size={16} weight="bold" />} onClick={() => onChange([...links, { title: '', url: '' }])}>
+          Добавить ссылку
+        </Button>
+      </div>
+    </fieldset>
+  )
+}
+
 function UsefulDialog({ item, files, onClose }: { item: UsefulItem | null; files: FileMeta[]; onClose(): void }) {
   const session = useSession()
   const form = useMaterialForm(files, onClose, 'useful')
@@ -195,40 +236,7 @@ function UsefulDialog({ item, files, onClose }: { item: UsefulItem | null; files
         <TextField label="Тема" value={topic} onChange={setTopic} hint="Категория для фильтра, например: Python" />
         <TextAreaField label="Описание" value={description} onChange={setDescription} rows={3} />
         <FormFiles files={form.files} onAdd={form.add} onRemove={form.remove} onRename={form.rename} />
-        <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1.5 text-sm font-medium">Внешние ссылки</legend>
-          {links.map((link, i) => (
-            <div key={i} className="flex flex-wrap items-center gap-2">
-              <input
-                aria-label={`Ссылка ${i + 1}: название`}
-                placeholder="Название"
-                value={link.title}
-                onChange={(e) => setLinks((l) => l.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))}
-                className={cn(inputBase, 'min-w-0 flex-1 basis-40')}
-              />
-              <input
-                aria-label={`Ссылка ${i + 1}: адрес`}
-                placeholder="https://…"
-                value={link.url}
-                onChange={(e) => setLinks((l) => l.map((x, j) => (j === i ? { ...x, url: e.target.value } : x)))}
-                className={cn(inputBase, 'min-w-0 flex-[2] basis-56')}
-              />
-              <IconButton label={`Убрать ссылку ${i + 1}`} onClick={() => setLinks((l) => l.filter((_, j) => j !== i))}>
-                <X size={18} />
-              </IconButton>
-            </div>
-          ))}
-          {form.err('links') && (
-            <p role="alert" className="text-sm text-red">
-              {form.err('links')}
-            </p>
-          )}
-          <div>
-            <Button size="sm" icon={<Plus size={16} weight="bold" />} onClick={() => setLinks((l) => [...l, { title: '', url: '' }])}>
-              Добавить ссылку
-            </Button>
-          </div>
-        </fieldset>
+        <LinksFieldset links={links} onChange={setLinks} error={form.err('links')} />
         <DialogActions>
           <Button onClick={form.discard} disabled={form.busy}>
             Отмена
@@ -323,20 +331,10 @@ export function UsefulPage() {
                           {item.topic ? `${item.topic}. ` : ''}Добавлено {formatDay(item.createdAt, TUTOR_TIMEZONE)}
                         </p>
                         {item.description && <p className="mt-2 whitespace-pre-line">{item.description}</p>}
-                        {item.links.length > 0 && (
-                          <ul className="mt-2 flex flex-col">
-                            {item.links.map((link) => (
-                              <li key={link.url}>
-                                <a href={link.url} target="_blank" rel="noreferrer" className="inline-flex min-h-9 items-center gap-1.5 text-pen underline">
-                                  {link.title} <ArrowSquareOut size={16} aria-hidden />
-                                </a>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
                       </div>
                       {admin && <ItemActions name={item.title} onEdit={() => setEditing(item)} onDelete={() => setDeleting(item)} />}
                     </div>
+                    {item.links.length > 0 && <LinkList links={item.links} className="px-4 pb-4 sm:px-5 sm:pb-5" />}
                     {(rest.length > 0 || lead) && <FileList files={lead ? [lead, ...rest] : rest} viewBase={viewBase} />}
                   </Panel>
                 )
@@ -407,12 +405,13 @@ function MethodicalDialog({ item, files, onClose }: { item: MethodicalItem | nul
   const [topic, setTopic] = useState(item?.topic ?? '')
   const [description, setDescription] = useState(item?.description ?? '')
   const [egeTask, setEgeTask] = useState(item?.egeTask ? String(item.egeTask) : '')
+  const [links, setLinks] = useState<MaterialLink[]>(item?.links ?? [])
 
   const submit = (e: FormEvent) => {
     e.preventDefault()
     void form.submit(
       (fileIds) =>
-        saveMethodical(session, { title, topic, description, egeTask: egeTask ? Number(egeTask) : null }, fileIds, item?.id),
+        saveMethodical(session, { title, topic, description, egeTask: egeTask ? Number(egeTask) : null, links }, fileIds, item?.id),
       item ? 'Методичка сохранена' : 'Методичка добавлена',
     )
   }
@@ -434,6 +433,7 @@ function MethodicalDialog({ item, files, onClose }: { item: MethodicalItem | nul
         </div>
         <TextAreaField label="Описание" value={description} onChange={setDescription} rows={3} />
         <FormFiles files={form.files} onAdd={form.add} onRemove={form.remove} onRename={form.rename} />
+        <LinksFieldset links={links} onChange={setLinks} error={form.err('links')} />
         {form.err('file') && (
           <p role="alert" className="text-sm text-red">
             {form.err('file')}
@@ -553,7 +553,8 @@ export function MethodicalPage() {
                       </div>
                       {admin && <ItemActions name={item.title} onEdit={() => setEditing(item)} onDelete={() => setDeleting(item)} />}
                     </div>
-                    <FileList files={pickFiles(shared.data, item.fileIds)} viewBase={viewBase} />
+                    {(item.links ?? []).length > 0 && <LinkList links={item.links ?? []} className="px-4 pb-4 sm:px-5" />}
+                    {item.fileIds.length > 0 && <FileList files={pickFiles(shared.data, item.fileIds)} viewBase={viewBase} />}
                   </Panel>
                 ))}
               </div>

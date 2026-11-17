@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CATALOGS, mocksStats, mockTotals, taskKind, validateTasks } from './mocks'
+import { CATALOGS, mocksStats, mockTotals, secondaryScore, SECONDARY_SCALE, taskKind, validateTasks } from './mocks'
 import type { MockExam } from './types'
 
 function mock(id: string, date: string, scores: Record<number, number | null>, fill: number | null = null): MockExam {
@@ -105,5 +105,23 @@ describe('статистика пробников', () => {
     CATALOGS[0].tasks[0].topic = 'Новая тема'
     expect(JSON.stringify(first.tasks)).toBe(snapshot)
     CATALOGS[0].tasks[0].topic = original
+  })
+})
+
+describe('вторичные баллы', () => {
+  it('шкала растёт от 0 до 100 на 29 первичных', () => {
+    expect(SECONDARY_SCALE).toHaveLength(30)
+    expect(SECONDARY_SCALE[29]).toBe(100)
+    for (let i = 1; i < SECONDARY_SCALE.length; i++) expect(SECONDARY_SCALE[i]).toBeGreaterThan(SECONDARY_SCALE[i - 1])
+  })
+
+  it('переводит первичные баллы', () => {
+    expect(secondaryScore(6, 29)).toBe(40)
+    expect(secondaryScore(15, 29)).toBe(64)
+    expect(secondaryScore(0, 29)).toBe(0)
+  })
+
+  it('не переводит пробник с другим максимумом', () => {
+    expect(secondaryScore(10, 20)).toBeNull()
   })
 })

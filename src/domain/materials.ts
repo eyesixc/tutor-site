@@ -78,6 +78,7 @@ export interface MethodicalInput {
   description: string
   topic: string
   egeTask: number | null
+  links?: MaterialLink[]
 }
 
 const methodicalFile = (session: Session) => jsonFile<MethodicalFile>(session.data, paths.shared.methodical)
@@ -93,8 +94,9 @@ export async function saveMethodical(session: Session, raw: MethodicalInput, fil
   if (raw.egeTask !== null && (!Number.isInteger(raw.egeTask) || raw.egeTask < 1 || raw.egeTask > EGE_TASK_COUNT)) {
     throw new ValidationError('egeTask', `Номер задания: от 1 до ${EGE_TASK_COUNT}`)
   }
-  if (fileIds.length === 0) throw new ValidationError('file', 'Прикрепите хотя бы один файл')
-  const input = { title, description: raw.description.trim(), topic: raw.topic.trim(), egeTask: raw.egeTask }
+  const links = cleanLinks(raw.links ?? [])
+  if (fileIds.length === 0 && links.length === 0) throw new ValidationError('file', 'Прикрепите файл или добавьте ссылку')
+  const input = { title, description: raw.description.trim(), topic: raw.topic.trim(), egeTask: raw.egeTask, links }
   await methodicalFile(session).update((cur) => {
     const items = cur?.items ?? []
     if (id) return { items: items.map((i) => (i.id === id ? { ...i, ...input, fileIds } : i)) }

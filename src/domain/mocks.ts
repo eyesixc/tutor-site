@@ -104,6 +104,27 @@ export async function deleteCatalog(session: Session, id: string): Promise<void>
   }, 'Удалена версия справочника')
 }
 
+// ── Вторичные баллы ─────────────────────────────────────────────────────────
+
+/**
+ * Перевод первичных баллов в тестовые (вторичные) по шкале Рособрнадзора 2025–2026 года
+ * для ЕГЭ по информатике с максимумом 29 первичных. Шкалу 2027 года опубликуют после экзамена;
+ * если она изменится, достаточно поправить эту таблицу. Индекс — первичный балл.
+ */
+export const SECONDARY_SCALE = [
+  0, 7, 14, 20, 27, 34, 40, 43, 46, 48, 51, 54, 56, 59, 62, 64, 67, 70, 72, 75, 78, 80, 83, 85, 88, 90, 93, 95, 98, 100,
+]
+
+/** Минимальный тестовый балл по информатике, установленный Рособрнадзором. */
+export const SECONDARY_MIN = 40
+
+/** Тестовый балл; null, если в пробнике не 29 первичных баллов и шкала к нему не подходит. */
+export function secondaryScore(primary: number, maxPrimary: number): number | null {
+  if (maxPrimary !== SECONDARY_SCALE.length - 1) return null
+  const index = Math.min(Math.max(Math.round(primary), 0), maxPrimary)
+  return SECONDARY_SCALE[index]
+}
+
 // ── Подсчёты ────────────────────────────────────────────────────────────────
 
 export type TaskKind = 'full' | 'partial' | 'zero' | 'unscored'
@@ -119,6 +140,8 @@ export interface MockTotals {
   max: number
   /** Процент от максимума; null, пока не выставлен ни один балл. */
   percent: number | null
+  /** Тестовый балл по шкале ЕГЭ; null, пока нет баллов или шкала не подходит. */
+  secondary: number | null
   full: number
   partial: number
   zero: number
@@ -135,6 +158,7 @@ export function mockTotals(mock: MockExam): MockTotals {
     score,
     max,
     percent: graded && max > 0 ? Math.round((score / max) * 100) : null,
+    secondary: graded ? secondaryScore(score, max) : null,
     full: count('full'),
     partial: count('partial'),
     zero: count('zero'),
@@ -162,6 +186,14 @@ export interface MocksStats {
   partial: number
   zero: number
   trend: { label: string; percent: number }[]
+  /** Пробники, к которым подходит шкала перевода. */
+  secondaryCount: number
+  averageSecondary: number | null
+  bestSecondary: number | null
+  lastSecondary: number | null
+  /** Сколько пробников написано не ниже минимального тестового балла. */
+  aboveMin: number
+  secondaryTrend: { label: string; percent: number }[]
   byNumber: LossRow[]
   byTopic: LossRow[]
 }
@@ -196,6 +228,11 @@ export function mocksStats(mocks: MockExam[]): MocksStats {
     return [...rows.values()]
   }
 
+  const secondaries = graded
+    .filter((x) => x.totals.secondary !== null)
+    .map((x) => ({ label: x.mock.title, percent: x.totals.secondary! }))
+  const secValues = secondaries.map((x) => x.percent)
+
   return {
     count: graded.length,
     scoreSum: sum((t) => t.score),
@@ -206,6 +243,12 @@ export function mocksStats(mocks: MockExam[]): MocksStats {
     partial: sum((t) => t.partial),
     zero: sum((t) => t.zero),
     trend: graded.map((x) => ({ label: x.mock.title, percent: x.totals.percent! })),
+    secondaryCount: secValues.length,
+    averageSecondary: secValues.length ? Math.round(secValues.reduce((a, b) => a + b, 0) / secValues.length) : null,
+    bestSecondary: secValues.length ? Math.max(...secValues) : null,
+    lastSecondary: secValues.length ? secValues[secValues.length - 1] : null,
+    aboveMin: secValues.filter((v) => v >= SECONDARY_MIN).length,
+    secondaryTrend: secondaries,
     byNumber: collect(
       (t) => String(t.number),
       (t) => String(t.number),

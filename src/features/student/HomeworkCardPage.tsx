@@ -4,13 +4,16 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useSession } from '../../core/auth/session'
 import { formatDay, formatTime } from '../../core/time'
-import { MAX_SUBMISSION_SIZE, pickFiles } from '../../domain/files'
-import { addSubmissionFiles, markOwnHomework, removeSubmissionFile, topicLabel } from '../../domain/homework'
+import { telegramUrl } from '../../domain/contacts'
+import { pickFiles } from '../../domain/files'
+import { markOwnHomework, topicLabel } from '../../domain/homework'
+import { homeworkLinkOf } from '../../domain/lessons'
 import { Button } from '../../ui/Button'
 import { ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
-import { useLessons } from '../shared/data'
-import { FileList, Uploader } from '../shared/filesUi'
+import { LinkCard } from '../../ui/LinkCard'
+import { useContacts, useLessons } from '../shared/data'
+import { FileList } from '../shared/filesUi'
 import { Facts, Linkified, scoreText, StatusBadge } from '../shared/homeworkUi'
 import { useOwnData, useOwnHomework, useOwnSubmissions } from './data'
 
@@ -23,6 +26,7 @@ export function StudentHomeworkCardPage() {
   const subs = useOwnSubmissions()
   const lessons = useLessons()
   const data = useOwnHomework()
+  const contacts = useContacts()
 
   const mark = useMutation({
     mutationFn: (done: boolean) => markOwnHomework(session, homeworkId, done),
@@ -58,7 +62,8 @@ export function StudentHomeworkCardPage() {
   const lockedByTutor = hw.doneByTutor !== null
   const attachments = pickFiles(own.data.files, hw.fileIds)
   const solution = pickFiles(subs.data.files, submission?.fileIds ?? [])
-  const refreshSubs = () => queryClient.invalidateQueries({ queryKey: ['own-subs'] })
+  const homeworkLink = homeworkLinkOf(lesson)
+  const telegram = telegramUrl(contacts.data?.telegram ?? '')
   const percent = hw.score !== null && hw.maxScore ? Math.round((hw.score / hw.maxScore) * 100) : null
 
   return (
@@ -102,12 +107,21 @@ export function StudentHomeworkCardPage() {
 
           <Panel className="p-5">
             <h2 className="text-lg">Что нужно сделать</h2>
+            {homeworkLink && (
+              <LinkCard
+                className="mt-3"
+                accent
+                title="Открыть домашку"
+                url={homeworkLink.url}
+                note={lesson ? `Из урока «${lesson.title}»` : undefined}
+              />
+            )}
             {hw.instructions ? (
               <div className="mt-2">
                 <Linkified text={hw.instructions} />
               </div>
             ) : (
-              <p className="mt-2 text-muted">Репетитор не оставил инструкцию. Спроси на уроке, если что-то неясно.</p>
+              !homeworkLink && <p className="mt-2 text-muted">Репетитор не оставил инструкцию. Спроси на уроке, если что-то неясно.</p>
             )}
           </Panel>
 
@@ -118,39 +132,26 @@ export function StudentHomeworkCardPage() {
             </Panel>
           )}
 
-          <Panel className="overflow-hidden">
-            <h2 className="px-5 pt-5 pb-3 text-lg">Моё решение</h2>
-            {solution.length > 0 && (
-              <FileList
-                files={solution}
-                viewBase="/files/own"
-                fileKey={session.key}
-                onRemove={
-                  status === 'checked'
-                    ? undefined
-                    : async (meta) => {
-                        await removeSubmissionFile(session, hw.id, meta)
-                        await refreshSubs()
-                      }
-                }
-              />
-            )}
-            {status === 'checked' ? (
-              solution.length === 0 && <p className="border-t border-line px-5 py-4 text-sm text-muted">Файлы не прикреплялись.</p>
-            ) : (
-              <div className="border-t border-line p-4 sm:px-5">
-                <Uploader
-                  scope={{ kind: 'student', studentId: session.bundle.userId, key: session.key }}
-                  maxSize={MAX_SUBMISSION_SIZE}
-                  hint="Перетащи сюда файлы с решением или выбери. PDF, фото, DOCX, код. До 50 МБ каждый"
-                  onUploaded={async (metas) => {
-                    await addSubmissionFiles(session, hw.id, metas)
-                    await refreshSubs()
-                  }}
-                />
-              </div>
-            )}
-          </Panel>
+          {status !== 'checked' && (
+            <Panel className="p-5">
+              <h2 className="text-lg">Как сдать</h2>
+              <p className="mt-1 max-w-[65ch]">
+                Отправь решение репетитору в Телеграм: файлы, фото или скриншоты. Потом отметь задание выполненным ниже.
+              </p>
+              {telegram ? (
+                <LinkCard className="mt-3 sm:max-w-sm" title="Написать в Телеграм" url={telegram} note={`@${contacts.data?.telegram}`} />
+              ) : (
+                <p className="mt-2 text-sm text-muted">Контакт в Телеграме репетитор пока не указал. Спроси его на уроке.</p>
+              )}
+            </Panel>
+          )}
+
+          {solution.length > 0 && (
+            <Panel className="overflow-hidden">
+              <h2 className="px-5 pt-5 pb-3 text-lg">Загруженные раньше файлы</h2>
+              <FileList files={solution} viewBase="/files/own" fileKey={session.key} />
+            </Panel>
+          )}
 
           {status !== 'checked' && (
             <Panel className="flex flex-wrap items-center justify-between gap-4 p-5">

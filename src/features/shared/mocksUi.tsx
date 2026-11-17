@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { mockTotals, taskKind, type LossRow, type MocksStats, type TaskKind } from '../../domain/mocks'
+import { mockTotals, SECONDARY_MIN, taskKind, type LossRow, type MocksStats, type TaskKind } from '../../domain/mocks'
 import type { MockExam, MockExamTask } from '../../domain/types'
 import { Panel } from '../../ui/bits'
 import { cn } from '../../ui/cn'
@@ -123,6 +123,19 @@ export function MockScore({ mock, large }: { mock: MockExam; large?: boolean }) 
   )
 }
 
+/** Тестовый балл пробника: число и пометка, если он ниже минимального. */
+export function SecondaryScore({ mock, large }: { mock: MockExam; large?: boolean }) {
+  const { secondary } = mockTotals(mock)
+  if (secondary === null) return null
+  const low = secondary < SECONDARY_MIN
+  return (
+    <span className={cn('num', large ? 'text-2xl' : 'text-lg', low && 'text-red')} title={low ? `Ниже минимума ${SECONDARY_MIN}` : undefined}>
+      {secondary}
+      <span className="text-sm text-muted"> тест.</span>
+    </span>
+  )
+}
+
 function Stat({ label, value }: { label: string; value: ReactNode }) {
   return (
     <div>
@@ -160,6 +173,36 @@ export function MocksStatsPanel({ stats }: { stats: MocksStats }) {
           </div>
         </div>
       </Panel>
+
+      {stats.secondaryCount > 0 && (
+        <Panel>
+          <div className="border-b border-line px-4 py-3 sm:px-5">
+            <h2 className="text-lg">Тестовые баллы</h2>
+            <p className="mt-0.5 text-sm text-muted">
+              Первичные баллы, переведённые по шкале ЕГЭ по информатике. Минимальный тестовый балл — {SECONDARY_MIN}
+            </p>
+          </div>
+          <div className="grid md:grid-cols-2">
+            <dl className="grid grid-cols-2 content-start gap-x-6 gap-y-4 p-4 sm:p-5">
+              <Stat label="Последний пробник" value={stats.lastSecondary} />
+              <Stat label="Средний" value={stats.averageSecondary} />
+              <Stat label="Лучший" value={stats.bestSecondary} />
+              <Stat
+                label={`Не ниже ${SECONDARY_MIN}`}
+                value={
+                  <span className={stats.aboveMin < stats.secondaryCount ? 'text-red' : 'text-ok'}>
+                    {stats.aboveMin} из {stats.secondaryCount}
+                  </span>
+                }
+              />
+            </dl>
+            <div className="border-t border-line p-4 sm:p-5 md:border-t-0 md:border-l">
+              <p className="mb-2 text-sm text-muted">Тестовый балл по пробникам, из 100</p>
+              <TrendChart points={stats.secondaryTrend} unit=" б." threshold={{ value: SECONDARY_MIN, label: `минимум ${SECONDARY_MIN}` }} />
+            </div>
+          </div>
+        </Panel>
+      )}
 
       <Panel className="flex flex-col gap-3 p-4 sm:p-5">
         <div>
