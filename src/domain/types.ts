@@ -206,7 +206,6 @@ export const paths = {
     useful: 'shared/useful.json',
     methodical: 'shared/methodical.json',
     examCatalog: 'shared/exam_catalog.json',
-    contacts: 'shared/contacts.json',
   },
 } as const
 

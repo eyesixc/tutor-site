@@ -4,7 +4,6 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useSession } from '../../core/auth/session'
 import { formatDay, formatTime } from '../../core/time'
-import { telegramUrl } from '../../domain/contacts'
 import { pickFiles } from '../../domain/files'
 import { markOwnHomework, topicLabel } from '../../domain/homework'
 import { homeworkLinkOf } from '../../domain/lessons'
@@ -12,7 +11,7 @@ import { Button } from '../../ui/Button'
 import { ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
 import { LinkCard } from '../../ui/LinkCard'
-import { useContacts, useLessons } from '../shared/data'
+import { useLessons } from '../shared/data'
 import { FileList } from '../shared/filesUi'
 import { Facts, Linkified, scoreText, StatusBadge } from '../shared/homeworkUi'
 import { useOwnData, useOwnHomework, useOwnSubmissions } from './data'
@@ -26,7 +25,6 @@ export function StudentHomeworkCardPage() {
   const subs = useOwnSubmissions()
   const lessons = useLessons()
   const data = useOwnHomework()
-  const contacts = useContacts()
 
   const mark = useMutation({
     mutationFn: (done: boolean) => markOwnHomework(session, homeworkId, done),
@@ -63,7 +61,6 @@ export function StudentHomeworkCardPage() {
   const attachments = pickFiles(own.data.files, hw.fileIds)
   const solution = pickFiles(subs.data.files, submission?.fileIds ?? [])
   const homeworkLink = homeworkLinkOf(lesson)
-  const telegram = telegramUrl(contacts.data?.telegram ?? '')
   const percent = hw.score !== null && hw.maxScore ? Math.round((hw.score / hw.maxScore) * 100) : null
 
   return (
@@ -138,11 +135,6 @@ export function StudentHomeworkCardPage() {
               <p className="mt-1 max-w-[65ch]">
                 Отправь решение репетитору в Телеграм: файлы, фото или скриншоты. Потом отметь задание выполненным ниже.
               </p>
-              {telegram ? (
-                <LinkCard className="mt-3 sm:max-w-sm" title="Написать в Телеграм" url={telegram} note={`@${contacts.data?.telegram}`} />
-              ) : (
-                <p className="mt-2 text-sm text-muted">Контакт в Телеграме репетитор пока не указал. Спроси его на уроке.</p>
-              )}
             </Panel>
           )}
 
