@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CATALOGS, mocksStats, mockTotals, secondaryScore, SECONDARY_SCALE, taskKind, validateTasks } from './mocks'
+import { CATALOGS, focusTasks, mocksStats, mockTotals, previousGraded, secondaryScore, SECONDARY_SCALE, taskKind, validateTasks } from './mocks'
 import type { MockExam } from './types'
 
 function mock(id: string, date: string, scores: Record<number, number | null>, fill: number | null = null): MockExam {
@@ -123,5 +123,31 @@ describe('вторичные баллы', () => {
 
   it('не переводит пробник с другим максимумом', () => {
     expect(secondaryScore(10, 20)).toBeNull()
+  })
+})
+
+describe('сравнение и приоритеты', () => {
+  const make = (id: string, date: string, full: number): MockExam => ({
+    id,
+    title: id,
+    date,
+    comment: '',
+    catalogVersion: 'ege-2027',
+    tasks: CATALOGS[0].tasks.map((t, i) => ({ ...t, score: i < full ? t.maxScore : 0, comment: '' })),
+  })
+  const a = make('a', '2026-10-01', 5)
+  const b = make('b', '2026-11-01', 15)
+  const empty: MockExam = { ...make('c', '2026-11-10', 0), tasks: CATALOGS[0].tasks.map((t) => ({ ...t, score: null, comment: '' })) }
+
+  it('предыдущий проверенный пробник', () => {
+    expect(previousGraded([a, b, empty], b)?.id).toBe('a')
+    expect(previousGraded([a, b, empty], a)).toBeNull()
+    expect(previousGraded([a, b, empty], empty)?.id).toBe('b')
+  })
+
+  it('сначала номера, проваленные каждый раз', () => {
+    const rows = focusTasks(mocksStats([a, b]), 3)
+    expect(rows.every((r) => r.times === r.attempts)).toBe(true)
+    expect(rows[0].key).toBe('26')
   })
 })

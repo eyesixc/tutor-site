@@ -1,4 +1,5 @@
 import { CaretLeft, Check } from '@phosphor-icons/react'
+import type { ReactNode } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -15,6 +16,29 @@ import { useLessons } from '../shared/data'
 import { FileList } from '../shared/filesUi'
 import { Facts, Linkified, scoreText, StatusBadge } from '../shared/homeworkUi'
 import { useOwnData, useOwnHomework, useOwnSubmissions } from './data'
+
+/** Шаг сдачи: номер в кружке, линия к следующему шагу и содержимое. */
+function Step({ n, title, done, last, children }: { n: number; title: string; done: boolean; last?: boolean; children: ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <div className="flex flex-col items-center">
+        <span
+          className={cn(
+            'num flex size-7 shrink-0 items-center justify-center rounded-full text-sm',
+            done ? 'bg-ok-soft text-ok' : n === 1 ? 'bg-pen text-pen-ink' : 'bg-pen-soft text-pen',
+          )}
+        >
+          {done ? <Check size={14} weight="bold" aria-label="Готово" /> : n}
+        </span>
+        {!last && <span aria-hidden className="my-1 w-0.5 flex-1 bg-line" />}
+      </div>
+      <div className={cn('flex min-w-0 flex-1 flex-col gap-2.5', !last && 'pb-5')}>
+        <h3 className="pt-0.5 text-base font-medium">{title}</h3>
+        {children}
+      </div>
+    </li>
+  )
+}
 
 export function StudentHomeworkCardPage() {
   const { homeworkId = '' } = useParams()
@@ -102,70 +126,78 @@ export function StudentHomeworkCardPage() {
             </Panel>
           )}
 
-          <Panel className="p-5">
-            <h2 className="text-lg">Что нужно сделать</h2>
-            {homeworkLink && (
-              <HomeworkTile className="mt-3" url={homeworkLink.url} note={status === 'checked' ? undefined : `сдать до ${formatDay(hw.deadline, tz)}`} />
-            )}
-            {hw.instructions ? (
-              <div className="mt-2">
-                <Linkified text={hw.instructions} />
-              </div>
-            ) : (
-              !homeworkLink && <p className="mt-2 text-muted">Репетитор не оставил инструкцию. Спроси на уроке, если что-то неясно.</p>
-            )}
-          </Panel>
-
-          {attachments.length > 0 && (
-            <Panel className="overflow-hidden">
-              <h2 className="px-5 pt-5 pb-3 text-lg">Файлы от репетитора</h2>
-              <FileList files={attachments} viewBase="/files/own" fileKey={session.key} />
-            </Panel>
-          )}
-
-          {status !== 'checked' && (
-            <Panel className="p-5">
-              <h2 className="text-lg">Как сдать</h2>
-              <p className="mt-1 max-w-[65ch]">
-                Отправь решение репетитору в Телеграм: файлы, фото или скриншоты. Потом отметь задание выполненным ниже.
-              </p>
-            </Panel>
-          )}
+          {(() => {
+            const task = (
+              <>
+                {homeworkLink && (
+                  <HomeworkTile url={homeworkLink.url} note={status === 'checked' ? undefined : `сдать до ${formatDay(hw.deadline, tz)}`} />
+                )}
+                {hw.instructions ? (
+                  <Linkified text={hw.instructions} />
+                ) : (
+                  !homeworkLink && <p className="text-muted">Репетитор не оставил инструкцию. Спроси на уроке, если что-то неясно.</p>
+                )}
+                {attachments.length > 0 && (
+                  <div className="overflow-hidden rounded-control border border-line">
+                    <p className="px-4 pt-3 pb-1 text-sm text-muted">Файлы от репетитора</p>
+                    <FileList files={attachments} viewBase="/files/own" fileKey={session.key} />
+                  </div>
+                )}
+              </>
+            )
+            if (status === 'checked') {
+              return (
+                <Panel className="flex flex-col gap-3 p-5">
+                  <h2 className="text-lg">Что нужно было сделать</h2>
+                  {task}
+                </Panel>
+              )
+            }
+            const done = status === 'done'
+            return (
+              <Panel className="p-5">
+                <h2 className="mb-4 text-lg">Три шага</h2>
+                <ol>
+                  <Step n={1} title="Открой домашку и реши" done={done}>
+                    {task}
+                  </Step>
+                  <Step n={2} title="Отправь решение репетитору в Телеграм" done={done}>
+                    <p className="text-sm text-muted">Файлы, фото или скриншоты решения.</p>
+                  </Step>
+                  <Step n={3} title={done ? 'Отмечено выполненным' : 'Отметь, что сделал'} done={done} last>
+                    <p className="text-sm text-muted">
+                      {lockedByTutor
+                        ? 'Отметку поставил репетитор, изменить её может только он.'
+                        : done
+                          ? 'Репетитор увидит отметку и проверит работу.'
+                          : 'Репетитор увидит отметку в своей панели.'}
+                    </p>
+                    {!lockedByTutor &&
+                      (done ? (
+                        <Button className="self-start" loading={mark.isPending} onClick={() => mark.mutate(false)}>
+                          Снять отметку
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="primary"
+                          className="self-start"
+                          icon={<Check size={18} weight="bold" />}
+                          loading={mark.isPending}
+                          onClick={() => mark.mutate(true)}
+                        >
+                          Отметить выполненным
+                        </Button>
+                      ))}
+                  </Step>
+                </ol>
+              </Panel>
+            )
+          })()}
 
           {solution.length > 0 && (
             <Panel className="overflow-hidden">
               <h2 className="px-5 pt-5 pb-3 text-lg">Загруженные раньше файлы</h2>
               <FileList files={solution} viewBase="/files/own" fileKey={session.key} />
-            </Panel>
-          )}
-
-          {status !== 'checked' && (
-            <Panel className="flex flex-wrap items-center justify-between gap-4 p-5">
-              <div className="min-w-0">
-                <h2 className="text-lg">{status === 'done' ? 'Работа сдана' : 'Отметь, когда сделаешь'}</h2>
-                <p className="mt-1 text-sm text-muted">
-                  {lockedByTutor
-                    ? 'Отметку поставил репетитор, изменить её может только он.'
-                    : status === 'done'
-                      ? 'Репетитор увидит отметку и проверит работу.'
-                      : 'Репетитор увидит отметку в своей панели.'}
-                </p>
-              </div>
-              {!lockedByTutor &&
-                (status === 'done' ? (
-                  <Button loading={mark.isPending} onClick={() => mark.mutate(false)}>
-                    Снять отметку
-                  </Button>
-                ) : (
-                  <Button
-                    variant="primary"
-                    icon={<Check size={18} weight="bold" />}
-                    loading={mark.isPending}
-                    onClick={() => mark.mutate(true)}
-                  >
-                    Отметить выполненным
-                  </Button>
-                ))}
             </Panel>
           )}
         </div>

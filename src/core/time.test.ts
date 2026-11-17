@@ -10,6 +10,8 @@ import {
   shiftMonth,
   zonedToUtc,
   zoneOffsetMinutes,
+  daysSince,
+  daysWord,
 } from './time'
 
 describe('часовые пояса', () => {
@@ -69,5 +71,13 @@ describe('календарь', () => {
     expect(monthTitle({ year: 2026, month: 11 })).toBe('Ноябрь 2026')
     expect(formatDayKey('2026-11-16')).toBe('16 ноября')
     expect(formatDayKey('2026-11-16', true)).toBe('понедельник, 16 ноября')
+  })
+})
+
+describe('дни', () => {
+  const now = new Date('2026-11-17T12:00:00Z')
+  it('склонение дней', () => {
+    expect([1, 2, 5, 11, 21, 22].map(daysWord)).toEqual(['1 день', '2 дня', '5 дней', '11 дней', '21 день', '22 дня'])
+    expect(daysSince('2026-11-15T11:00:00Z', now)).toBe(2)
   })
 })

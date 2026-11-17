@@ -169,6 +169,8 @@ export function mockTotals(mock: MockExam): MockTotals {
 export interface LossRow {
   key: string
   label: string
+  /** Тема задания из пробника. */
+  topic: string
   /** В скольких пробниках потеряны баллы. */
   times: number
   attempts: number
@@ -215,7 +217,7 @@ export function mocksStats(mocks: MockExam[]): MocksStats {
       for (const task of mock.tasks) {
         if (task.score === null) continue
         const key = keyOf(task)
-        const row = rows.get(key) ?? { key, label: labelOf(task), times: 0, attempts: 0, lostPoints: 0, maxPoints: 0 }
+        const row = rows.get(key) ?? { key, label: labelOf(task), topic: task.topic, times: 0, attempts: 0, lostPoints: 0, maxPoints: 0 }
         row.lostPoints += task.maxScore - task.score
         row.maxPoints += task.maxScore
         if (!seenHere.has(key)) row.attempts += 1
@@ -349,4 +351,20 @@ export async function deleteMock(session: Session, studentId: string, mockId: st
 
 export function sortMocks(mocks: MockExam[]): MockExam[] {
   return [...mocks].sort((a, b) => b.date.localeCompare(a.date))
+}
+
+/** Предыдущий проверенный пробник по дате: для сравнения «+8 к прошлому». */
+export function previousGraded(mocks: MockExam[], mock: MockExam): MockExam | null {
+  const earlier = mocks
+    .filter((m) => m.id !== mock.id && m.date < mock.date && mockTotals(m).percent !== null)
+    .sort((a, b) => b.date.localeCompare(a.date))
+  return earlier[0] ?? null
+}
+
+/** Номера, где баллы теряются чаще всего: сначала по числу пробников, затем по потерянным баллам. */
+export function focusTasks(stats: MocksStats, limit = 5): LossRow[] {
+  return stats.byNumber
+    .filter((r) => r.times > 0)
+    .sort((a, b) => b.times / b.attempts - a.times / a.attempts || b.lostPoints - a.lostPoints || Number(a.key) - Number(b.key))
+    .slice(0, limit)
 }

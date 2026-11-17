@@ -233,3 +233,110 @@ export function MocksStatsPanel({ stats }: { stats: MocksStats }) {
     </>
   )
 }
+
+/** Главный блок пробника: тестовый балл, шкала 0–100 с минимумом и сравнение с прошлым пробником. */
+export function MockScorePanel({ mock, previous, average }: { mock: MockExam; previous: MockExam | null; average: number | null }) {
+  const totals = mockTotals(mock)
+  if (totals.percent === null) {
+    return (
+      <Panel className="p-5">
+        <p className="text-muted">Баллы ещё не выставлены.</p>
+      </Panel>
+    )
+  }
+  const value = totals.secondary
+  const prev = previous ? mockTotals(previous) : null
+  const delta = value !== null && prev?.secondary != null ? value - prev.secondary : prev ? totals.percent - (prev.percent ?? 0) : null
+  const unit = value !== null ? '' : ' п.п.'
+  return (
+    <Panel className="grid overflow-hidden md:grid-cols-[18rem_minmax(0,1fr)]">
+      <div className="flex flex-col gap-1.5 border-b border-line p-5 md:border-r md:border-b-0 sm:p-6">
+        <span className="text-sm text-muted">{value !== null ? 'Тестовый балл' : 'Результат'}</span>
+        <span className={cn('num text-[4.5rem] leading-none font-medium', value !== null && value < SECONDARY_MIN && 'text-red')}>
+          {value ?? `${totals.percent}%`}
+        </span>
+        <span className="num text-sm text-muted">
+          {totals.score} из {totals.max} первичных
+        </span>
+        {delta !== null && previous && (
+          <span
+            className={cn(
+              'num mt-2 self-start rounded-full px-2.5 py-0.5 text-sm',
+              delta > 0 ? 'bg-ok-soft text-ok' : delta < 0 ? 'bg-red-soft text-red' : 'bg-sunken text-muted',
+            )}
+          >
+            {delta > 0 ? '+' : delta < 0 ? '−' : '±'}
+            {Math.abs(delta)}
+            {unit} к «{previous.title}»
+          </span>
+        )}
+      </div>
+      {value !== null ? (
+        <div className="flex flex-col justify-center gap-4 p-5 sm:p-6">
+          <span className="text-sm text-muted">Шкала от 0 до 100</span>
+          <div className="relative h-14" role="img" aria-label={`${value} из 100, минимум ${SECONDARY_MIN}`}>
+            <span className="absolute inset-x-0 top-[18px] h-3.5 rounded-full bg-sunken" />
+            <span className="absolute left-0 top-[18px] h-3.5 rounded-l-full bg-red-soft" style={{ width: `${SECONDARY_MIN}%` }} />
+            <span className="absolute left-0 top-[18px] h-3.5 rounded-full bg-pen" style={{ width: `${value}%` }} />
+            <span className="absolute top-2.5 h-7.5 w-0.5 bg-red" style={{ left: `${SECONDARY_MIN}%` }} />
+            <span className="absolute top-11 -translate-x-1/2 text-xs whitespace-nowrap text-red" style={{ left: `${SECONDARY_MIN}%` }}>
+              минимум {SECONDARY_MIN}
+            </span>
+            <span className="num absolute top-0 -translate-x-1/2 text-xs text-pen" style={{ left: `${value}%` }}>
+              {value}
+            </span>
+          </div>
+          <p className="text-sm text-muted">
+            {value >= SECONDARY_MIN ? (
+              <>
+                Выше минимума на <span className="num text-ink">{value - SECONDARY_MIN}</span>.
+              </>
+            ) : (
+              <>
+                Ниже минимума на <span className="num text-red">{SECONDARY_MIN - value}</span>.
+              </>
+            )}
+            {average !== null && (
+              <>
+                {' '}
+                Средний по всем пробникам: <span className="num text-ink">{average}</span>.
+              </>
+            )}
+          </p>
+        </div>
+      ) : (
+        <div className="flex items-center p-5 text-sm text-muted sm:p-6">
+          В этом пробнике не 29 первичных баллов, поэтому перевести в тестовые нельзя.
+        </div>
+      )}
+    </Panel>
+  )
+}
+
+/** Номера заданий, которые стоит подтянуть в первую очередь. */
+export function FocusList({ rows }: { rows: LossRow[] }) {
+  return (
+    <Panel className="flex flex-col gap-1 p-4 sm:p-5">
+      <h2 className="text-lg">Что подтянуть в первую очередь</h2>
+      <p className="text-sm text-muted">Задания, где баллы теряются чаще всего</p>
+      {rows.length === 0 ? (
+        <p className="mt-3 text-muted">Потерь нет: все задания на полный балл.</p>
+      ) : (
+        <ul className="mt-2">
+          {rows.map((row) => {
+            const always = row.times === row.attempts
+            return (
+              <li key={row.key} className="grid grid-cols-[2.25rem_minmax(0,1fr)_auto] items-center gap-3 border-t border-line py-2.5">
+                <span className={cn('num font-medium', always ? 'text-red' : 'text-warn')}>{row.label}</span>
+                <span className="truncate">{row.topic}</span>
+                <span className="num text-sm">
+                  {row.times} из {row.attempts}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </Panel>
+  )
+}

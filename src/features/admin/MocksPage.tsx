@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useSession } from '../../core/auth/session'
 import { formatDayKey, todayKey, TUTOR_TIMEZONE } from '../../core/time'
-import { createMock, deleteMock, mockTotals, saveMock } from '../../domain/mocks'
+import { createMock, deleteMock, mocksStats, mockTotals, previousGraded, saveMock } from '../../domain/mocks'
 import { ValidationError } from '../../domain/students'
 import type { MockExam, MockExamTask, StudentRecord } from '../../domain/types'
 import { Button, buttonClass } from '../../ui/Button'
@@ -13,7 +13,7 @@ import { inputBase, SelectField, TextAreaField, TextField } from '../../ui/Field
 import { EmptyState, ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
 import { useOverview, useRefresh } from '../shared/data'
-import { MockScore, SecondaryScore, TaskStrip } from '../shared/mocksUi'
+import { MockScore, MockScorePanel, SecondaryScore, TaskStrip } from '../shared/mocksUi'
 import { useCatalogs } from './CatalogPage'
 
 export function MockCreateDialog({
@@ -209,7 +209,7 @@ export function AdminMocksPage() {
 }
 
 /** Редактор пробника: баллы и комментарии по всем заданиям сохраняются одним действием. */
-function MockEditor({ mock, studentId, studentName }: { mock: MockExam; studentId: string; studentName: string }) {
+function MockEditor({ mock, studentId, studentName, all }: { mock: MockExam; studentId: string; studentName: string; all: MockExam[] }) {
   const session = useSession()
   const refresh = useRefresh()
   const navigate = useNavigate()
@@ -293,6 +293,9 @@ function MockEditor({ mock, studentId, studentName }: { mock: MockExam; studentI
       />
 
       <div className="flex flex-col gap-6">
+        {totals.percent !== null && (
+          <MockScorePanel mock={{ ...mock, tasks }} previous={previousGraded(all, mock)} average={mocksStats(all).averageSecondary} />
+        )}
         <Panel className="p-4 sm:p-5">
           <TaskStrip tasks={tasks} />
         </Panel>
@@ -403,6 +406,6 @@ export function AdminMockPage() {
     return <ErrorState error={new Error('Пробник не найден. Возможно, он был удалён.')} onRetry={() => navigate('/admin/mocks')} />
   }
   // key: после сохранения редактор берёт свежие данные как исходные.
-  return <MockEditor key={JSON.stringify(mock)} mock={mock} studentId={studentId} studentName={student.name} />
+  return <MockEditor key={JSON.stringify(mock)} mock={mock} studentId={studentId} studentName={student.name} all={overview.data.files[studentId].mockExams} />
 }
 

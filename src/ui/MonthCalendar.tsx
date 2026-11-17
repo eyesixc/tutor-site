@@ -30,9 +30,21 @@ export interface CalendarEvent {
   kind?: 'theory' | 'practice' | null
 }
 
+export interface CalendarDeadline {
+  id: string
+  /** Момент дедлайна, ISO. */
+  at: string
+  title: string
+  to: string
+  /** Долг: дедлайн прошёл, работа не сдана. */
+  overdue?: boolean
+}
+
 interface MonthCalendarProps {
   events: CalendarEvent[]
   timeZone: string
+  /** Дедлайны домашних заданий: день обводится красной рамкой. */
+  deadlines?: CalendarDeadline[]
 }
 
 const MAX_IN_CELL = 3
@@ -51,7 +63,7 @@ function chipClass(event: CalendarEvent, isPast: boolean): string {
   return isPast ? 'bg-sunken text-muted' : 'bg-pen-soft text-pen'
 }
 
-export function MonthCalendar({ events, timeZone }: MonthCalendarProps) {
+export function MonthCalendar({ events, timeZone, deadlines = [] }: MonthCalendarProps) {
   const today = todayKey(timeZone)
   const [month, setMonth] = useState<YearMonth>(() => yearMonthOf(today))
   const [selected, setSelected] = useState(today)
@@ -66,9 +78,19 @@ export function MonthCalendar({ events, timeZone }: MonthCalendarProps) {
     return map
   }, [events, timeZone])
 
+  const deadlinesByDay = useMemo(() => {
+    const map = new Map<string, CalendarDeadline[]>()
+    for (const d of [...deadlines].sort((a, b) => a.at.localeCompare(b.at))) {
+      const key = dayKey(d.at, timeZone)
+      map.set(key, [...(map.get(key) ?? []), d])
+    }
+    return map
+  }, [deadlines, timeZone])
+
   const days = monthGrid(month)
   const current = monthKey(month)
   const selectedEvents = byDay.get(selected) ?? []
+  const selectedDeadlines = deadlinesByDay.get(selected) ?? []
 
   const goToday = () => {
     setMonth(yearMonthOf(today))
@@ -106,6 +128,7 @@ export function MonthCalendar({ events, timeZone }: MonthCalendarProps) {
         {days.map((key, i) => {
           const inMonth = key.startsWith(current)
           const list = byDay.get(key) ?? []
+          const dayDeadlines = deadlinesByDay.get(key) ?? []
           const isToday = key === today
           const isSelected = key === selected
           const dayNumber = Number(key.slice(8))
@@ -118,13 +141,14 @@ export function MonthCalendar({ events, timeZone }: MonthCalendarProps) {
                 i >= 35 && 'border-b-0',
                 !inMonth && 'bg-bg',
                 isSelected && 'bg-pen-soft/50',
+                dayDeadlines.length > 0 && 'shadow-[inset_0_0_0_2px_var(--color-red)]',
               )}
             >
               <button
                 type="button"
                 onClick={() => setSelected(key)}
                 aria-pressed={isSelected}
-                aria-label={`${formatDayKey(key, true)}${list.length ? `, занятий: ${list.length}` : ''}`}
+                aria-label={`${formatDayKey(key, true)}${list.length ? `, занятий: ${list.length}` : ''}${dayDeadlines.length ? `, дедлайнов: ${dayDeadlines.length}` : ''}`}
                 className={cn(
                   'num flex size-9 items-center justify-center self-center rounded-full text-sm sm:size-7 sm:self-start',
                   isToday ? 'bg-pen font-medium text-pen-ink' : inMonth ? 'text-ink hover:bg-sunken' : 'text-muted hover:bg-sunken',
@@ -171,7 +195,7 @@ export function MonthCalendar({ events, timeZone }: MonthCalendarProps) {
         })}
       </div>
 
-      {events.some((e) => e.kind) && (
+      {(events.some((e) => e.kind) || deadlines.length > 0) && (
         <ul className="flex flex-wrap gap-x-5 gap-y-1 border-t border-line px-4 py-2.5 text-sm text-muted sm:px-5">
           <li className="flex items-center gap-2">
             <span aria-hidden className="size-3.5 rounded-[4px] bg-pen-soft outline-1 outline-pen" />
@@ -181,13 +205,34 @@ export function MonthCalendar({ events, timeZone }: MonthCalendarProps) {
             <span aria-hidden className="size-3.5 rounded-[4px] bg-prac-soft outline-1 outline-prac" />
             Практика
           </li>
+          {deadlines.length > 0 && (
+            <li className="flex items-center gap-2">
+              <span aria-hidden className="size-3.5 rounded-[4px] border-2 border-red" />
+              Дедлайн
+            </li>
+          )}
         </ul>
       )}
 
       <div className="border-t border-line px-4 py-3 sm:px-5">
         <h3 className="text-sm font-medium first-letter:uppercase">{formatDayKey(selected, true)}</h3>
+        {selectedDeadlines.length > 0 && (
+          <ul className="mt-2 flex flex-col gap-1.5">
+            {selectedDeadlines.map((d) => (
+              <li key={d.id}>
+                <Link to={d.to} className="flex min-h-11 items-center gap-3 rounded-control px-2 py-1.5 hover:bg-sunken">
+                  <span className="num w-24 shrink-0 text-sm text-muted">до {formatTime(d.at, timeZone)}</span>
+                  <span className="shrink-0 rounded-full bg-red-soft px-2 py-0.5 text-xs font-medium text-red">
+                    {d.overdue ? 'Долг' : 'Дедлайн'}
+                  </span>
+                  <span className="min-w-0 flex-1">{d.title}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
         {selectedEvents.length === 0 ? (
-          <p className="mt-1 text-sm text-muted">Занятий нет</p>
+          selectedDeadlines.length === 0 && <p className="mt-1 text-sm text-muted">Занятий нет</p>
         ) : (
           <ul className="mt-2 flex flex-col gap-1.5">
             {selectedEvents.map((e) => (

@@ -177,3 +177,17 @@ export function monthGrid({ year, month }: YearMonth): string[] {
 }
 
 export const WEEKDAYS_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
+
+/** Сколько полных дней прошло после момента: для «просрочено на 2 дня». */
+export function daysSince(iso: string, now: Date = new Date()): number {
+  return Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / 86400000))
+}
+
+/** «1 день», «2 дня», «5 дней». */
+export function daysWord(n: number): string {
+  const mod10 = n % 10
+  const mod100 = n % 100
+  if (mod10 === 1 && mod100 !== 11) return `${n} день`
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} дня`
+  return `${n} дней`
+}

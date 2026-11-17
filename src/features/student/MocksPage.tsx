@@ -2,11 +2,12 @@ import { CaretLeft } from '@phosphor-icons/react'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { formatDayKey } from '../../core/time'
-import { mocksStats, mockTotals, sortMocks, taskKind } from '../../domain/mocks'
+import { focusTasks, mocksStats, mockTotals, previousGraded, SECONDARY_MIN, sortMocks, taskKind } from '../../domain/mocks'
 import { Button } from '../../ui/Button'
 import { EmptyState, ErrorState, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
-import { MockScore, MocksStatsPanel, SecondaryScore, TaskStrip } from '../shared/mocksUi'
+import { TrendChart } from '../shared/homeworkUi'
+import { FocusList, MockScore, MockScorePanel, MocksStatsPanel, SecondaryScore, TaskStrip } from '../shared/mocksUi'
 import { useOwnData } from './data'
 
 function Loading() {
@@ -88,6 +89,8 @@ export function StudentMockPage() {
 
   const totals = mockTotals(mock)
   const graded = totals.percent !== null
+  const all = own.data.mockExams
+  const stats = mocksStats(all)
   const lost = mock.tasks.filter((t) => t.score !== null && t.score < t.maxScore)
   const rows = showAll ? mock.tasks : lost
 
@@ -99,25 +102,30 @@ export function StudentMockPage() {
       <PageHeader
         title={mock.title}
         description={formatDayKey(mock.date, false, true)}
-        action={
-          graded ? (
-            <div className="text-right">
-              <MockScore mock={mock} large />
-              <p className="text-sm text-muted">
-                {totals.secondary === null ? `${totals.percent}% первичных баллов` : `${totals.secondary} тестовых баллов`}
-              </p>
-            </div>
-          ) : (
-            <span className="text-muted">Ещё не проверен</span>
-          )
-        }
+        action={graded ? undefined : <span className="text-muted">Ещё не проверен</span>}
       />
 
       <div className="flex flex-col gap-6">
+        {graded && <MockScorePanel mock={mock} previous={previousGraded(all, mock)} average={stats.averageSecondary} />}
+
         <Panel className="flex flex-col gap-3 p-4 sm:p-5">
-          <h2 className="text-lg">Задания</h2>
+          <h2 className="text-lg">{mock.tasks.length} заданий</h2>
           <TaskStrip tasks={mock.tasks} />
         </Panel>
+
+        {graded && stats.count > 0 && (
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Panel className="flex flex-col gap-2 p-4 sm:p-5">
+              <h2 className="text-lg">{stats.secondaryCount > 0 ? 'Тестовый балл по пробникам' : 'Результат по пробникам'}</h2>
+              {stats.secondaryCount > 0 ? (
+                <TrendChart points={stats.secondaryTrend} unit=" б." threshold={{ value: SECONDARY_MIN, label: `минимум ${SECONDARY_MIN}` }} />
+              ) : (
+                <TrendChart points={stats.trend} />
+              )}
+            </Panel>
+            <FocusList rows={focusTasks(stats)} />
+          </div>
+        )}
 
         {graded && (
           <Panel className="overflow-hidden">
