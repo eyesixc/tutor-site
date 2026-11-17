@@ -10,7 +10,7 @@ import { homeworkLinkOf } from '../../domain/lessons'
 import { Button } from '../../ui/Button'
 import { ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
-import { LinkCard } from '../../ui/LinkCard'
+import { HomeworkTile } from '../../ui/LinkCard'
 import { useLessons } from '../shared/data'
 import { FileList } from '../shared/filesUi'
 import { Facts, Linkified, scoreText, StatusBadge } from '../shared/homeworkUi'
@@ -105,13 +105,7 @@ export function StudentHomeworkCardPage() {
           <Panel className="p-5">
             <h2 className="text-lg">Что нужно сделать</h2>
             {homeworkLink && (
-              <LinkCard
-                className="mt-3"
-                accent
-                title="Открыть домашку"
-                url={homeworkLink.url}
-                note={lesson ? `Из урока «${lesson.title}»` : undefined}
-              />
+              <HomeworkTile className="mt-3" url={homeworkLink.url} note={status === 'checked' ? undefined : `сдать до ${formatDay(hw.deadline, tz)}`} />
             )}
             {hw.instructions ? (
               <div className="mt-2">

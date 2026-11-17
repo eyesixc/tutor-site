@@ -22,7 +22,7 @@ import { ConfirmDialog, Dialog, DialogActions } from '../../ui/Dialog'
 import { inputBase, inputClass, SelectField, TextAreaField, TextField } from '../../ui/Field'
 import { EmptyState, ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
-import { LinkList } from '../../ui/LinkCard'
+import { LinkTiles } from '../../ui/LinkCard'
 import { FileViewInline } from './FileViewPage'
 import { FileList, Uploader, useSharedFiles } from './filesUi'
 
@@ -334,7 +334,7 @@ export function UsefulPage() {
                       </div>
                       {admin && <ItemActions name={item.title} onEdit={() => setEditing(item)} onDelete={() => setDeleting(item)} />}
                     </div>
-                    {item.links.length > 0 && <LinkList links={item.links} className="px-4 pb-4 sm:px-5 sm:pb-5" />}
+                    {item.links.length > 0 && <LinkTiles links={item.links} className="px-4 pb-4 sm:px-5 sm:pb-5" />}
                     {(rest.length > 0 || lead) && <FileList files={lead ? [lead, ...rest] : rest} viewBase={viewBase} />}
                   </Panel>
                 )
@@ -553,7 +553,7 @@ export function MethodicalPage() {
                       </div>
                       {admin && <ItemActions name={item.title} onEdit={() => setEditing(item)} onDelete={() => setDeleting(item)} />}
                     </div>
-                    {(item.links ?? []).length > 0 && <LinkList links={item.links ?? []} className="px-4 pb-4 sm:px-5" />}
+                    {(item.links ?? []).length > 0 && <LinkTiles links={item.links ?? []} className="px-4 pb-4 sm:px-5" />}
                     {item.fileIds.length > 0 && <FileList files={pickFiles(shared.data, item.fileIds)} viewBase={viewBase} />}
                   </Panel>
                 ))}

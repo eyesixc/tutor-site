@@ -7,7 +7,7 @@ import { findLesson, homeworkLinkOf, lessonKind, lessonTitle, nextSession } from
 import { buttonClass } from '../../ui/Button'
 import { MonthCalendar, type CalendarEvent } from '../../ui/MonthCalendar'
 import { ErrorState, Panel, Skeleton } from '../../ui/bits'
-import { LinkCard } from '../../ui/LinkCard'
+import { HomeworkTile } from '../../ui/LinkCard'
 import { useLessons } from '../shared/data'
 import { StatusBadge } from '../shared/homeworkUi'
 import { useOwnData, useOwnHomework } from './data'
@@ -137,7 +137,7 @@ export function StudentHomePage() {
               Сдать до <span className="num">{when(latest.hw.deadline)}</span>
             </p>
             {latestLink && (
-              <LinkCard className="mt-3 sm:max-w-sm" accent title="Открыть домашку" url={latestLink.url} />
+              <HomeworkTile className="mt-3" url={latestLink.url} note={`сдать до ${formatDay(latest.hw.deadline, tz)}`} />
             )}
           </div>
           <div className="flex flex-col items-end gap-3">

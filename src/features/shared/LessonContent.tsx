@@ -4,7 +4,7 @@ import { pickFiles, renameSharedFiles } from '../../domain/files'
 import { addLessonFiles, KIND_LABEL, removeLessonFile } from '../../domain/lessons'
 import type { Lesson } from '../../domain/types'
 import { Panel } from '../../ui/bits'
-import { LinkList } from '../../ui/LinkCard'
+import { LinkTiles } from '../../ui/LinkCard'
 import { FileList, Uploader, useSharedFiles } from './filesUi'
 
 interface LessonContentProps {
@@ -84,7 +84,7 @@ export function LessonContent({ lesson, viewBase, manage }: LessonContentProps) 
       {lesson.links.length > 0 && (
         <div className="border-t border-line p-5">
           <h3 className="text-sm font-normal text-muted">Ссылки</h3>
-          <LinkList links={lesson.links} className="mt-3" />
+          <LinkTiles links={lesson.links} className="mt-3" />
         </div>
       )}
     </Panel>

@@ -27,7 +27,7 @@ import { ConfirmDialog, Dialog, DialogActions } from '../../ui/Dialog'
 import { inputBase, TextAreaField, TextField } from '../../ui/Field'
 import { ErrorState, errorMessage, PageHeader, Panel, Skeleton } from '../../ui/bits'
 import { cn } from '../../ui/cn'
-import { LinkCard } from '../../ui/LinkCard'
+import { HomeworkTile } from '../../ui/LinkCard'
 import { useLessons, useOverview, useRefresh } from '../shared/data'
 import { FileList, Uploader } from '../shared/filesUi'
 import { Facts, Linkified, scoreText, StatusBadge } from '../shared/homeworkUi'
@@ -286,13 +286,7 @@ export function AdminHomeworkDetailPage() {
           <Panel className="p-5">
             <h2 className="text-lg">Инструкция</h2>
             {homeworkLinkOf(lesson) && (
-              <LinkCard
-                className="mt-3"
-                accent
-                title="Домашка"
-                url={homeworkLinkOf(lesson)!.url}
-                note={lesson ? `Из урока «${lesson.title}»` : undefined}
-              />
+              <HomeworkTile className="mt-3" url={homeworkLinkOf(lesson)!.url} title="Домашка к уроку" note={lesson?.title} />
             )}
             {hw.instructions ? (
               <div className="mt-2">

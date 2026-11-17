@@ -1,93 +1,137 @@
 import {
   ArrowUpRight,
-  CloudArrowDown,
+  ChatCircleText,
+  Code,
   FileText,
-  GithubLogo,
   Globe,
   NotePencil,
-  PaperPlaneTilt,
-  YoutubeLogo,
+  PlayCircle,
+  Table,
+  Target,
   type Icon,
 } from '@phosphor-icons/react'
+import { describeLink, type LinkKind } from '../domain/links'
 import { cn } from './cn'
 
-/** Адрес без протокола и www: по нему видно, куда ведёт ссылка. */
-export function linkHost(url: string): string {
-  try {
-    return new URL(url).hostname.replace(/^www\./, '')
-  } catch {
-    return url
-  }
+export const LINK_ICON: Record<LinkKind, Icon> = {
+  homework: NotePencil,
+  doc: FileText,
+  table: Table,
+  video: PlayCircle,
+  trainer: Target,
+  chat: ChatCircleText,
+  code: Code,
+  web: Globe,
 }
 
-function iconFor(url: string, title: string): Icon {
-  const host = linkHost(url)
-  if (/домаш|дз/i.test(title)) return NotePencil
-  if (/disk\.yandex|yadi\.sk|drive\.google|cloud\.mail/.test(host)) return CloudArrowDown
-  if (/youtube|youtu\.be|rutube|vk\.com\/video|vkvideo/.test(host)) return YoutubeLogo
-  if (/github/.test(host)) return GithubLogo
-  if (/t\.me|telegram/.test(host)) return PaperPlaneTilt
-  if (/docs\.google|\.pdf$/.test(url)) return FileText
-  return Globe
-}
+const focusRing = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pen'
 
-interface LinkCardProps {
-  title: string
+interface HomeworkTileProps {
   url: string
-  /** Главная ссылка, например на домашку: выделяется синим. */
-  accent?: boolean
-  /** Подпись вместо адреса сайта. */
+  title?: string
+  /** Строка под названием: откуда ссылка или до какого числа сдать. */
   note?: string
   className?: string
 }
 
-/** Ссылка строкой: значок по типу сайта, название, адрес и стрелка «откроется в новой вкладке». */
-export function LinkCard({ title, url, accent, note, className }: LinkCardProps) {
-  const Icon = iconFor(url, title)
+/** Главная плитка: ссылка на домашку. Широкая и синяя, чтобы её нельзя было пропустить. */
+export function HomeworkTile({ url, title = 'Открыть домашку', note, className }: HomeworkTileProps) {
+  const { service } = describeLink(url, 'Домашка')
   return (
     <a
       href={url}
       target="_blank"
       rel="noreferrer"
       className={cn(
-        'group flex min-h-14 items-center gap-3 rounded-control border px-3 py-2 transition-colors duration-150',
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pen',
-        accent ? 'border-pen bg-pen-soft hover:bg-pen-soft/70' : 'border-line bg-surface hover:border-muted/60 hover:bg-sunken',
+        'group flex flex-wrap items-center gap-x-4 gap-y-3 rounded-panel bg-pen p-4 text-pen-ink transition-[filter] duration-150 hover:brightness-110',
+        focusRing,
         className,
       )}
     >
-      <span
-        aria-hidden
-        className={cn(
-          'flex size-9 shrink-0 items-center justify-center rounded-control',
-          accent ? 'bg-pen text-pen-ink' : 'bg-sunken text-pen',
-        )}
-      >
-        <Icon size={20} />
+      <span aria-hidden className="flex size-12 shrink-0 items-center justify-center rounded-control bg-pen-ink/15">
+        <NotePencil size={26} />
       </span>
-      <span className="min-w-0 flex-1">
-        <span className={cn('block truncate font-medium', accent && 'text-pen')}>{title}</span>
-        <span className="num block truncate text-xs text-muted">{note ?? linkHost(url)}</span>
+      <span className="min-w-0 flex-1 basis-40">
+        <span className="block text-sm opacity-80">Домашнее задание</span>
+        <span className="block text-lg leading-snug font-semibold break-words">{title}</span>
+        <span className="block text-sm opacity-80">{note ? `${service} · ${note}` : service}</span>
       </span>
-      <ArrowUpRight
-        size={18}
-        aria-hidden
-        className="shrink-0 text-muted transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-pen"
-      />
+      <span className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-control bg-pen-ink px-3.5 text-sm font-semibold text-pen">
+        Открыть
+        <ArrowUpRight size={16} weight="bold" aria-hidden className="transition-transform duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+      </span>
       <span className="sr-only">(откроется в новой вкладке)</span>
     </a>
   )
 }
 
-/** Список ссылок сеткой: на телефоне в столбик, шире — в две колонки. */
-export function LinkList({ links, className }: { links: { title: string; url: string }[]; className?: string }) {
+/** Плитка ссылки: значок типа, название и сервис вместо адреса. */
+export function LinkTile({ title, url, className }: { title: string; url: string; className?: string }) {
+  const info = describeLink(url, title)
+  const Icon = LINK_ICON[info.kind]
+  const accent = info.kind === 'homework'
   return (
-    <ul className={cn('grid gap-2 sm:grid-cols-2', className)}>
-      {links.map((link) => (
-        <li key={link.url + link.title} className="min-w-0">
-          <LinkCard title={link.title} url={link.url} />
-        </li>
-      ))}
-    </ul>
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      title={url}
+      className={cn(
+        'group flex h-full flex-col gap-3.5 rounded-panel border p-4 transition-colors duration-150',
+        accent ? 'border-pen bg-pen-soft' : 'border-line bg-surface hover:border-pen hover:bg-pen-soft/40',
+        focusRing,
+        className,
+      )}
+    >
+      <span className="flex items-start justify-between gap-2">
+        <span
+          aria-hidden
+          className={cn(
+            'flex size-10 items-center justify-center rounded-control',
+            accent || info.kind === 'doc' || info.kind === 'table' || info.kind === 'video' ? 'bg-pen-soft text-pen' : 'bg-sunken text-ink',
+            accent && 'bg-pen text-pen-ink',
+          )}
+        >
+          <Icon size={22} />
+        </span>
+        <ArrowUpRight
+          size={18}
+          aria-hidden
+          className="text-muted transition-[color,transform] duration-150 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-pen"
+        />
+      </span>
+      <span className="min-w-0">
+        <span className="block font-semibold break-words group-hover:text-pen">{title}</span>
+        <span className="block truncate text-sm text-muted">{info.caption}</span>
+      </span>
+      <span className="sr-only">(откроется в новой вкладке)</span>
+    </a>
+  )
+}
+
+interface LinkTilesProps {
+  links: { title: string; url: string }[]
+  /** Ссылку на домашку показать главной плиткой сверху. */
+  featureHomework?: boolean
+  className?: string
+}
+
+/** Ссылки плитками: домашка широкой плиткой, остальное сеткой. */
+export function LinkTiles({ links, featureHomework = true, className }: LinkTilesProps) {
+  const featured = featureHomework ? links.find((l) => describeLink(l.url, l.title).kind === 'homework') : undefined
+  const rest = links.filter((l) => l !== featured)
+  return (
+    <div className={cn('flex flex-col gap-3', className)}>
+      {featured && <HomeworkTile url={featured.url} title={featured.title} />}
+      {rest.length > 0 && (
+        <ul className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-3">
+          {rest.map((link) => (
+            <li key={link.url + link.title} className="min-w-0">
+              <LinkTile title={link.title} url={link.url} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   )
 }

@@ -1,5 +1,6 @@
-import { ArrowUpRight } from '@phosphor-icons/react'
 import { useState, type ReactNode } from 'react'
+import { describeLink } from '../../domain/links'
+import { LINK_ICON } from '../../ui/LinkCard'
 import { monthTitle, yearMonthOf } from '../../core/time'
 import {
   homeworkMonths,
@@ -220,16 +221,23 @@ export function Facts({ items }: { items: [string, ReactNode][] }) {
   )
 }
 
-/** Короткая подпись адреса: сайт и, если путь длинный, многоточие. Полный адрес виден в подсказке. */
-function shortUrl(url: string): string {
-  try {
-    const u = new URL(url)
-    const host = u.hostname.replace(/^www\./, '')
-    const path = u.pathname.replace(/\/$/, '')
-    return path && path.length <= 18 ? host + path : path ? `${host}/…` : host
-  } catch {
-    return url
-  }
+/** Адрес внутри текста: метка с названием сервиса. Полный адрес виден в подсказке. */
+function InlineLink({ url }: { url: string }) {
+  const { kind, service } = describeLink(url, '')
+  const Icon = LINK_ICON[kind]
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noreferrer"
+      title={url}
+      className="mx-0.5 inline-flex max-w-full items-center gap-1.5 rounded-full bg-pen-soft px-2.5 align-baseline text-sm leading-7 text-pen transition-colors duration-150 hover:bg-pen hover:text-pen-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pen"
+    >
+      <Icon size={15} aria-hidden className="shrink-0" />
+      <span className="truncate">{service}</span>
+      <span className="sr-only">(откроется в новой вкладке)</span>
+    </a>
+  )
 }
 
 /** Текст с переносами строк, в котором адреса становятся ссылками. */
@@ -237,23 +245,7 @@ export function Linkified({ text }: { text: string }) {
   const parts = text.split(/(https?:\/\/[^\s]+)/g)
   return (
     <p className="max-w-[65ch] break-words whitespace-pre-line">
-      {parts.map((part, i) =>
-        /^https?:\/\//.test(part) ? (
-          <a
-            key={i}
-            href={part}
-            target="_blank"
-            rel="noreferrer"
-            title={part}
-            className="mx-0.5 inline-flex max-w-full items-center gap-1 rounded-control bg-pen-soft px-1.5 align-baseline text-pen underline decoration-pen/30 underline-offset-2 transition-colors duration-150 hover:decoration-pen"
-          >
-            <span className="num truncate text-sm">{shortUrl(part)}</span>
-            <ArrowUpRight size={14} aria-hidden className="shrink-0" />
-          </a>
-        ) : (
-          part
-        ),
-      )}
+      {parts.map((part, i) => (/^https?:\/\//.test(part) ? <InlineLink key={i} url={part} /> : part))}
     </p>
   )
 }

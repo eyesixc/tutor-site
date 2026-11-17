@@ -2,6 +2,7 @@ import type { Session } from '../core/auth/session'
 import { fromB64, newId } from '../core/crypto'
 import { jsonFile } from '../core/storage'
 import { listSharedFiles, registerSharedFiles, removeStored, unregisterSharedFile } from './files'
+import { isHomeworkTitle } from './links'
 import { listStudents, ValidationError } from './students'
 import {
   emptyStudentFile,
@@ -284,5 +285,5 @@ export function lessonTitle(lessons: Lesson[] | undefined, lessonId: string): st
 
 /** Ссылка на домашку из урока: та, в названии которой есть «домашка» или «ДЗ». */
 export function homeworkLinkOf(lesson: Lesson | null | undefined): LessonLink | null {
-  return lesson?.links.find((link) => /домаш|(^|[^а-яё])дз([^а-яё]|$)/i.test(link.title)) ?? null
+  return lesson?.links.find((link) => isHomeworkTitle(link.title)) ?? null
 }
